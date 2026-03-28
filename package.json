@@ -1,0 +1,22 @@
+{
+  "name": "noteshub-fullstack",
+  "version": "1.0.0",
+  "description": "Complete NotesHub application with backend and frontend",
+  "scripts": {
+    "setup:backend": "cd backend && npm install",
+    "setup:frontend": "cd frontend && npm install",
+    "setup": "npm run setup:backend && npm run setup:frontend",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "seed": "cd backend && npm run seed",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start"
+  },
+  "keywords": ["notes", "education", "sharing", "platform", "fullstack"],
+  "author": "NotesHub Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

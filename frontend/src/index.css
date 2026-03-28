@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: #64748b;
+  }
+
+  body {
+    @apply bg-dark-primary text-gray-100 font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md 
+    text-sm font-medium transition-colors 
+    focus-visible:outline-none focus-visible:ring-2 
+    focus-visible:ring-primary-500 focus-visible:ring-offset-2 
+    disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700;
+  }
+
+  .btn-secondary {
+    @apply bg-dark-secondary text-gray-100 hover:bg-dark-accent;
+  }
+
+  .btn-outline {
+    @apply border border-dark-border text-gray-100 
+    hover:bg-dark-accent;
+  }
+
+  .input {
+    @apply flex h-10 w-full rounded-md border border-dark-border 
+    bg-dark-secondary px-3 py-2 text-sm text-gray-100
+    placeholder:text-gray-400 
+    focus-visible:outline-none focus-visible:ring-2 
+    focus-visible:ring-primary-500 focus-visible:ring-offset-2 
+    disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .card {
+    @apply rounded-xl border border-dark-border 
+    bg-dark-secondary text-gray-100 shadow-sm;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-md bg-dark-accent;
+  }
+
+  .loading-skeleton {
+    @apply bg-gradient-to-r from-dark-accent via-dark-muted 
+    to-dark-accent bg-[length:200%_100%] animate-shimmer;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .glass-effect {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-400 to-purple-400 
+    bg-clip-text text-transparent;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0f172a;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+    border-radius: 999px;
+  }
+}
