@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom' // ✅ useNavigate add kiya
 import { motion } from 'framer-motion'
 import { 
   Upload, 
@@ -11,7 +11,8 @@ import {
   Star,
   Calendar,
   FileText,
-  BarChart3
+  BarChart3,
+  Lock // ✅ Lock icon add kiya
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useQuery } from '@tanstack/react-query'
@@ -24,6 +25,7 @@ import { formatDate, formatFileSize } from '../utils/helpers'
 
 const Dashboard = () => {
   const { user } = useAuth()
+  const navigate = useNavigate() // ✅ NEW
   const [activeTab, setActiveTab] = useState('overview')
 
   const { data: dashboardData, isLoading } = useQuery({
@@ -61,18 +63,28 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-gray-100 mb-2">
             Welcome back, {user?.username}!
           </h1>
           <p className="text-gray-400">Manage your notes and track your progress</p>
         </div>
-        <Link to="/upload">
-          <Button icon={<Upload className="h-4 w-4" />}>
-            Upload New Note
+        {/* ✅ Dono buttons side by side */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/change-password')}
+            icon={<Lock className="h-4 w-4" />}
+          >
+            Change Password
           </Button>
-        </Link>
+          <Link to="/upload">
+            <Button icon={<Upload className="h-4 w-4" />}>
+              Upload New Note
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -283,9 +295,7 @@ const Dashboard = () => {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-gray-100">My Uploaded Notes</h2>
               <Link to="/upload">
-                <Button icon={<Upload className="h-4 w-4" />}>
-                  Upload New
-                </Button>
+                <Button icon={<Upload className="h-4 w-4" />}>Upload New</Button>
               </Link>
             </div>
             {uploadedNotes.length > 0 ? (
@@ -301,9 +311,7 @@ const Dashboard = () => {
                   <h3 className="text-lg font-semibold text-gray-100 mb-2">No notes uploaded yet</h3>
                   <p className="text-gray-400 mb-4">Start sharing your knowledge with the community</p>
                   <Link to="/upload">
-                    <Button icon={<Upload className="h-4 w-4" />}>
-                      Upload Your First Note
-                    </Button>
+                    <Button icon={<Upload className="h-4 w-4" />}>Upload Your First Note</Button>
                   </Link>
                 </CardContent>
               </Card>

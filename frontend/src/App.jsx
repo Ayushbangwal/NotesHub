@@ -17,6 +17,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Upload from './pages/Upload'
 import Trending from './pages/Trending'
+import ChangePassword from './pages/ChangePassword' // ✅ NEW
 
 // UI Components
 import LoadingSpinner from './components/ui/LoadingSpinner'
@@ -59,6 +60,8 @@ function App() {
               
               {/* Protected Routes */}
               <Route path="/dashboard" element={user ? <Dashboard /> : <Login />} />
+              <Route path="/change-password" element={user ? <ChangePassword /> : <Login />} /> {/* ✅ NEW */}
+
               <Route path="/admin" element={user?.role === 'admin' ? <Admin /> : <Home />} />
             </Routes>
           </motion.div>

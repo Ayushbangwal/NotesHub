@@ -10,6 +10,7 @@ import Textarea from '../ui/Textarea'
 import Select from '../ui/Select'
 import { validateFile } from '../../utils/validators'
 import toast from 'react-hot-toast'
+import confetti from 'canvas-confetti' // ✅ NEW
 
 const UploadModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -43,6 +44,35 @@ const UploadModal = ({ isOpen, onClose }) => {
     { value: 'Other', label: 'Other' }
   ]
 
+  // ✅ NEW - Confetti function
+  const fireConfetti = () => {
+    // Left side
+    confetti({
+      particleCount: 80,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.6 },
+      colors: ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
+    })
+    // Right side
+    confetti({
+      particleCount: 80,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.6 },
+      colors: ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
+    })
+    // Center burst
+    setTimeout(() => {
+      confetti({
+        particleCount: 50,
+        spread: 100,
+        origin: { x: 0.5, y: 0.5 },
+        colors: ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
+      })
+    }, 200)
+  }
+
   const onDrop = (acceptedFiles, fileRejections) => {
     if (fileRejections.length > 0) {
       const rejection = fileRejections[0]
@@ -74,14 +104,13 @@ const UploadModal = ({ isOpen, onClose }) => {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.ppt']
     },
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 10 * 1024 * 1024,
     multiple: false
   })
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
-    
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
     }
@@ -89,32 +118,17 @@ const UploadModal = ({ isOpen, onClose }) => {
 
   const validateForm = () => {
     const newErrors = {}
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required'
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required'
-    }
-
-    if (!formData.subject) {
-      newErrors.subject = 'Subject is required'
-    }
-
-    if (!file) {
-      newErrors.file = 'Please select a file'
-    }
-
+    if (!formData.title.trim()) newErrors.title = 'Title is required'
+    if (!formData.description.trim()) newErrors.description = 'Description is required'
+    if (!formData.subject) newErrors.subject = 'Subject is required'
+    if (!file) newErrors.file = 'Please select a file'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
     if (!validateForm()) return
-
     setUploading(true)
     
     try {
@@ -129,6 +143,10 @@ const UploadModal = ({ isOpen, onClose }) => {
       formDataToSend.append('fileSize', file.size)
 
       await uploadNote.mutateAsync(formDataToSend)
+      
+      fireConfetti() // ✅ NEW - confetti chalao!
+      toast.success('🎉 Note uploaded successfully!')  // ✅ NEW - better toast
+
       onClose()
       resetForm()
     } catch (error) {
@@ -139,12 +157,7 @@ const UploadModal = ({ isOpen, onClose }) => {
   }
 
   const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      subject: '',
-      tags: ''
-    })
+    setFormData({ title: '', description: '', subject: '', tags: '' })
     setFile(null)
     setErrors({})
   }
@@ -157,12 +170,7 @@ const UploadModal = ({ isOpen, onClose }) => {
   }
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title="Upload New Note"
-      size="lg"
-    >
+    <Modal isOpen={isOpen} onClose={handleClose} title="Upload New Note" size="lg">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* File Upload */}
         <div>
@@ -233,7 +241,6 @@ const UploadModal = ({ isOpen, onClose }) => {
             error={errors.title}
             required
           />
-
           <Textarea
             name="description"
             label="Description"
@@ -244,7 +251,6 @@ const UploadModal = ({ isOpen, onClose }) => {
             rows={4}
             required
           />
-
           <Select
             name="subject"
             label="Subject"
@@ -254,7 +260,6 @@ const UploadModal = ({ isOpen, onClose }) => {
             error={errors.subject}
             required
           />
-
           <Input
             name="tags"
             label="Tags (Optional)"
@@ -266,19 +271,10 @@ const UploadModal = ({ isOpen, onClose }) => {
 
         {/* Submit Button */}
         <div className="flex justify-end space-x-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleClose}
-            disabled={uploading}
-          >
+          <Button type="button" variant="outline" onClick={handleClose} disabled={uploading}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            loading={uploading}
-            disabled={uploading}
-          >
+          <Button type="submit" loading={uploading} disabled={uploading}>
             Upload Note
           </Button>
         </div>
