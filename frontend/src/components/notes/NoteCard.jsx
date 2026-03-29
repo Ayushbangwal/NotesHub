@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react' // ✅ useState add kiya
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
@@ -8,7 +8,9 @@ import {
   Eye, 
   Calendar,
   User,
-  FileText
+  FileText,
+  Share2,  // ✅ Share icon add kiya
+  Check    // ✅ Check icon add kiya
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useDownloadNote, useToggleBookmark } from '../../hooks/useNotes'
@@ -19,6 +21,7 @@ const NoteCard = ({ note, animate = true }) => {
   const { user, isAuthenticated } = useAuth()
   const downloadNote = useDownloadNote()
   const toggleBookmark = useToggleBookmark()
+  const [copied, setCopied] = useState(false) // ✅ NEW
 
   const handleDownload = async (e) => {
     e.preventDefault()
@@ -40,6 +43,28 @@ const NoteCard = ({ note, animate = true }) => {
     await toggleBookmark.mutateAsync(note._id)
   }
 
+  // ✅ NEW - Share handler
+  const handleShare = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const url = `${window.location.origin}/notes/${note._id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000) // 2 second baad normal
+    } catch (err) {
+      // Fallback agar clipboard kaam na kare
+      const textArea = document.createElement('textarea')
+      textArea.value = url
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
   const isBookmarked = note.bookmarks?.some(bookmark => bookmark._id === user?._id)
   const isOwner = note.uploadedBy?._id === user?._id
 
@@ -56,8 +81,8 @@ const NoteCard = ({ note, animate = true }) => {
         y: -6,
         scale: 1.02,
         boxShadow: "0 20px 40px rgba(99, 102, 241, 0.15)"
-      }} // ✅ UPDATED
-      transition={{ duration: 0.2, ease: "easeOut" }} // ✅ NEW
+      }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className="h-full"
     >
       <Link to={`/notes/${note._id}`} className="block h-full">
@@ -143,7 +168,7 @@ const NoteCard = ({ note, animate = true }) => {
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* ✅ Action Buttons - Share button add kiya */}
             <div className="flex space-x-2">
               <Button
                 size="sm"
@@ -154,6 +179,25 @@ const NoteCard = ({ note, animate = true }) => {
                 <Download className="h-4 w-4 mr-1" />
                 Download
               </Button>
+
+              {/* Share Button ✅ */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShare}
+                className={`transition-all duration-200 ${
+                  copied 
+                    ? 'text-green-400 border-green-400' 
+                    : 'text-gray-400'
+                }`}
+                title={copied ? 'Link Copied!' : 'Copy Link'}
+              >
+                {copied 
+                  ? <Check className="h-4 w-4" /> 
+                  : <Share2 className="h-4 w-4" />
+                }
+              </Button>
+
               <Button variant="outline" size="sm">
                 <Eye className="h-4 w-4" />
               </Button>
