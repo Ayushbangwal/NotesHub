@@ -3,6 +3,15 @@ import Comment from '../models/Comment.js';
 import Download from '../models/Download.js';
 import User from '../models/User.js';
 import { validationResult } from 'express-validator';
+import { v2 as cloudinary } from 'cloudinary'; // ✅ NEW
+import { generateFileHash } from '../middleware/upload.js'; // ✅ NEW
+
+// ✅ NEW - Cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Get all notes with search and filters
 export const getAllNotes = async (req, res) => {
@@ -18,50 +27,32 @@ export const getAllNotes = async (req, res) => {
       limit = 12
     } = req.query;
 
-    // Build query
     const query = {
       isDeleted: false,
       isApproved: true
     };
 
-    // Search functionality
-    if (search) {
-      query.$text = { $search: search };
-    }
-
-    // Filter by subject
-    if (subject) {
-      query.subject = subject;
-    }
-
-    // Filter by tags
+    if (search) query.$text = { $search: search };
+    if (subject) query.subject = subject;
     if (tags) {
       const tagArray = tags.split(',').map(tag => tag.trim());
       query.tags = { $in: tagArray };
     }
+    if (fileType) query.fileType = fileType;
 
-    // Filter by file type
-    if (fileType) {
-      query.fileType = fileType;
-    }
-
-    // Sort options
     const sortOptions = {};
     const validSortFields = ['createdAt', 'downloads', 'averageRating', 'title'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
     sortOptions[sortField] = order === 'asc' ? 1 : -1;
 
-    // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Execute query
     const notes = await Note.find(query)
       .populate('uploadedBy', 'username avatar')
       .sort(sortOptions)
       .skip(skip)
       .limit(parseInt(limit));
 
-    // Get total count for pagination
     const total = await Note.countDocuments(query);
 
     res.json({
@@ -97,15 +88,30 @@ export const getNoteById = async (req, res) => {
   }
 };
 
-// Upload new note
+// ✅ UPDATED - Upload new note
 export const uploadNote = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    // Check if file exists
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const { title, description, subject, tags, fileUrl, fileName, fileType, fileSize, fileHash } = req.body;
+    const { title, description, subject, tags } = req.body;
+
+    // Manual validation
+    if (!title?.trim()) {
+      return res.status(400).json({ message: 'Title is required' });
+    }
+    if (!description?.trim()) {
+      return res.status(400).json({ message: 'Description is required' });
+    }
+    const validSubjects = ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Engineering', 'Medicine', 'Business', 'Economics', 'History', 'Literature', 'Psychology', 'Sociology', 'Philosophy', 'Other'];
+    if (!subject || !validSubjects.includes(subject)) {
+      return res.status(400).json({ message: 'Please select a valid subject' });
+    }
+
+    // Generate file hash for duplicate detection
+    const fileHash = generateFileHash(req.file.buffer);
 
     // Check for duplicate file
     const existingNote = await Note.findOne({ fileHash, isDeleted: false });
@@ -113,12 +119,35 @@ export const uploadNote = async (req, res) => {
       return res.status(400).json({ message: 'This file has already been uploaded' });
     }
 
+    // Get file type from original name
+    const fileType = req.file.originalname.split('.').pop().toLowerCase();
+    const fileName = req.file.originalname;
+
+    // ✅ Upload to Cloudinary
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'noteshub',
+          resource_type: 'raw', // raw = non-image files (PDF, DOCX etc)
+          public_id: `${Date.now()}-${fileName}`,
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      uploadStream.end(req.file.buffer);
+    });
+
+    const fileUrl = uploadResult.secure_url;
+    const fileSize = req.file.size;
+
     // Create new note
     const note = new Note({
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       subject,
-      tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+      tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
       fileUrl,
       fileName,
       fileType,
@@ -134,7 +163,6 @@ export const uploadNote = async (req, res) => {
       $inc: { 'stats.notesUploaded': 1 }
     });
 
-    // Populate user info
     await note.populate('uploadedBy', 'username avatar');
 
     res.status(201).json({
@@ -162,12 +190,10 @@ export const updateNote = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    // Check ownership
     if (note.uploadedBy.toString() !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to update this note' });
     }
 
-    // Update fields
     note.title = title || note.title;
     note.description = description || note.description;
     note.subject = subject || note.subject;
@@ -176,10 +202,7 @@ export const updateNote = async (req, res) => {
     await note.save();
     await note.populate('uploadedBy', 'username avatar');
 
-    res.json({
-      message: 'Note updated successfully',
-      note
-    });
+    res.json({ message: 'Note updated successfully', note });
   } catch (error) {
     console.error('Update note error:', error);
     res.status(500).json({ message: 'Server error while updating note' });
@@ -194,16 +217,13 @@ export const deleteNote = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    // Check ownership
     if (note.uploadedBy.toString() !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to delete this note' });
     }
 
-    // Soft delete
     note.isDeleted = true;
     await note.save();
 
-    // Update user stats
     await User.findByIdAndUpdate(note.uploadedBy, {
       $inc: { 'stats.notesUploaded': -1 }
     });
@@ -223,24 +243,15 @@ export const downloadNote = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    // Check if already downloaded
     const existingDownload = await Download.findOne({
       user: req.user.id,
       note: note._id
     });
 
     if (!existingDownload) {
-      // Create download record
-      await Download.create({
-        user: req.user.id,
-        note: note._id
-      });
-
-      // Update download count
+      await Download.create({ user: req.user.id, note: note._id });
       note.downloads += 1;
       await note.save();
-
-      // Update uploader stats
       await User.findByIdAndUpdate(note.uploadedBy, {
         $inc: { 'stats.totalDownloads': 1 }
       });
@@ -272,16 +283,13 @@ export const rateNote = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    // Check if user already rated
     const existingRatingIndex = note.ratings.findIndex(
       r => r.user.toString() === req.user.id
     );
 
     if (existingRatingIndex !== -1) {
-      // Update existing rating
       note.ratings[existingRatingIndex].rating = rating;
     } else {
-      // Add new rating
       note.ratings.push({ user: req.user.id, rating });
     }
 
@@ -309,10 +317,8 @@ export const toggleBookmark = async (req, res) => {
     const isBookmarked = note.bookmarks.includes(userId);
 
     if (isBookmarked) {
-      // Remove bookmark
       note.bookmarks = note.bookmarks.filter(id => id.toString() !== userId);
     } else {
-      // Add bookmark
       note.bookmarks.push(userId);
     }
 

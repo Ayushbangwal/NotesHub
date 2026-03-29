@@ -16,7 +16,7 @@ import { upload } from '../middleware/upload.js';
 
 const router = express.Router();
 
-// Validation rules
+// ✅ UPDATED - fileUrl aur fileHash validation hatayi
 const uploadValidation = [
   body('title')
     .trim()
@@ -38,24 +38,7 @@ const uploadValidation = [
       }
       return true;
     })
-    .withMessage('Each tag must be 20 characters or less'),
-  body('fileUrl')
-    .isURL()
-    .withMessage('File URL must be valid'),
-  body('fileName')
-    .trim()
-    .notEmpty()
-    .withMessage('File name is required'),
-  body('fileType')
-    .isIn(['pdf', 'docx', 'ppt'])
-    .withMessage('File type must be pdf, docx, or ppt'),
-  body('fileSize')
-    .isNumeric()
-    .withMessage('File size must be a number'),
-  body('fileHash')
-    .trim()
-    .notEmpty()
-    .withMessage('File hash is required')
+    .withMessage('Each tag must be 20 characters or less')
 ];
 
 const updateValidation = [
