@@ -20,6 +20,7 @@ import Trending from './pages/Trending'
 
 // UI Components
 import LoadingSpinner from './components/ui/LoadingSpinner'
+import BackToTop from './components/BackToTop' // ✅ NEW
 
 function App() {
   const { user, loading } = useAuth()
@@ -63,6 +64,7 @@ function App() {
           </motion.div>
         </main>
       </div>
+      <BackToTop /> {/* ✅ NEW */}
       <Footer />
     </div>
   )
