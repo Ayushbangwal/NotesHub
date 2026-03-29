@@ -9,6 +9,7 @@ import Input from '../components/ui/Input'
 import Select from '../components/ui/Select'
 import NoteCard from '../components/notes/NoteCard'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import { SkeletonGrid } from '../components/ui/SkeletonLoader' // ✅ NEW
 import { Card, CardContent } from '../components/ui/Card'
 
 const Notes = () => {
@@ -16,7 +17,6 @@ const Notes = () => {
   const [viewMode, setViewMode] = useState('grid')
   const [showFilters, setShowFilters] = useState(false)
 
-  // Get current search params
   const search = searchParams.get('search') || ''
   const subject = searchParams.get('subject') || ''
   const fileType = searchParams.get('fileType') || ''
@@ -24,10 +24,8 @@ const Notes = () => {
   const order = searchParams.get('order') || 'desc'
   const page = parseInt(searchParams.get('page')) || 1
 
-  // Debounce search
   const debouncedSearch = useDebounce(search, 300)
 
-  // Build query params
   const queryParams = {
     search: debouncedSearch,
     subject,
@@ -47,7 +45,7 @@ const Notes = () => {
     } else {
       newParams.delete('search')
     }
-    newParams.set('page', '1') // Reset to first page
+    newParams.set('page', '1')
     setSearchParams(newParams)
   }
 
@@ -58,7 +56,7 @@ const Notes = () => {
     } else {
       newParams.delete(key)
     }
-    newParams.set('page', '1') // Reset to first page
+    newParams.set('page', '1')
     setSearchParams(newParams)
   }
 
@@ -114,7 +112,6 @@ const Notes = () => {
       <Card>
         <CardContent className="p-6">
           <div className="space-y-4">
-            {/* Search Bar */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <Input
@@ -154,7 +151,6 @@ const Notes = () => {
               </div>
             </div>
 
-            {/* Filters */}
             {showFilters && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
@@ -193,8 +189,13 @@ const Notes = () => {
       {/* Results */}
       <div>
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <LoadingSpinner size="lg" />
+          // ✅ UPDATED - Skeleton instead of spinner
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <div className="h-5 w-40 bg-dark-accent rounded animate-pulse" />
+              <div className="h-5 w-24 bg-dark-accent rounded animate-pulse" />
+            </div>
+            <SkeletonGrid count={6} />
           </div>
         ) : error ? (
           <Card>
@@ -204,7 +205,6 @@ const Notes = () => {
           </Card>
         ) : data?.notes?.length > 0 ? (
           <>
-            {/* Results Count */}
             <div className="flex justify-between items-center mb-6">
               <p className="text-gray-400">
                 Showing {data.notes.length} of {data.pagination.total} notes
@@ -214,14 +214,12 @@ const Notes = () => {
               </div>
             </div>
 
-            {/* Notes Grid/List */}
             <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
               {data.notes.map((note) => (
                 <NoteCard key={note._id} note={note} />
               ))}
             </div>
 
-            {/* Pagination */}
             {data.pagination.pages > 1 && (
               <div className="flex justify-center items-center space-x-2 mt-8">
                 <Button
@@ -236,7 +234,6 @@ const Notes = () => {
                   {Array.from({ length: Math.min(5, data.pagination.pages) }, (_, i) => {
                     const pageNum = i + 1
                     const isActive = pageNum === page
-                    
                     return (
                       <Button
                         key={pageNum}

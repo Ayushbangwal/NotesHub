@@ -16,7 +16,7 @@ const Card = React.forwardRef(({
       ref={ref}
       className={cn(
         'rounded-lg border border-dark-border bg-dark-secondary text-gray-100 shadow-sm',
-        hover && 'transition-all duration-200 hover:shadow-lg hover:border-primary-500/50',
+        hover && 'transition-all duration-300 hover:shadow-xl hover:border-primary-500/50 hover:scale-[1.02] hover:-translate-y-1 cursor-pointer', // ✅ UPDATED
         className
       )}
       {...(animate && {

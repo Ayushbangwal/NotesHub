@@ -52,7 +52,12 @@ const NoteCard = ({ note, animate = true }) => {
         animate: { opacity: 1, y: 0 },
         transition: { duration: 0.3 }
       })}
-      whileHover={{ y: -4 }}
+      whileHover={{ 
+        y: -6,
+        scale: 1.02,
+        boxShadow: "0 20px 40px rgba(99, 102, 241, 0.15)"
+      }} // ✅ UPDATED
+      transition={{ duration: 0.2, ease: "easeOut" }} // ✅ NEW
       className="h-full"
     >
       <Link to={`/notes/${note._id}`} className="block h-full">
