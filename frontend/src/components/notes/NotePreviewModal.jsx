@@ -6,12 +6,13 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import Button from '../ui/Button'
 
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+// ✅ Fix 1: CDN se worker load - 404 error fix
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
-// ✅ Cloudinary CORS fix
+// ✅ Fix 2: Cloudinary CORS fix
 const getPreviewUrl = (url) => {
   if (!url) return url
-  return url.replace('/raw/upload/', '/raw/upload/fl_attachment:false/')
+  return url.replace('/raw/upload/', '/image/upload/fl_attachment:false/')
 }
 
 const NotePreviewModal = ({ isOpen, onClose, note }) => {
@@ -145,8 +146,8 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
                 ) : (
                   <Document
                     file={{
-                      url: getPreviewUrl(note.fileUrl), // ✅ CORS fix
-                      httpHeaders: { 'Content-Type': 'application/pdf' }
+                      url: getPreviewUrl(note.fileUrl),
+                      withCredentials: false
                     }}
                     onLoadSuccess={onDocumentLoadSuccess}
                     onLoadError={onDocumentLoadError}
