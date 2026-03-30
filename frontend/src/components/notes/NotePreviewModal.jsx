@@ -1,19 +1,23 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import Button from '../ui/Button'
 
-// ✅ PDF.js worker setup
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+// ✅ Yahi fix hai — local worker, CDN nahi
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString()
 
 const NotePreviewModal = ({ isOpen, onClose, note }) => {
   const [numPages, setNumPages] = useState(null)
   const [pageNumber, setPageNumber] = useState(1)
   const [scale, setScale] = useState(1.0)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   if (!isOpen || !note) return null
 
@@ -23,6 +27,13 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
     setNumPages(numPages)
     setPageNumber(1)
     setLoading(false)
+    setError(false)
+  }
+
+  const onDocumentLoadError = (err) => {
+    console.error('PDF load error:', err)
+    setLoading(false)
+    setError(true)
   }
 
   const goToPrevPage = () => setPageNumber(prev => Math.max(prev - 1, 1))
@@ -34,7 +45,6 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        // Backdrop
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -43,7 +53,6 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
           style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
           onClick={onClose}
         >
-          {/* Modal Box */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -55,8 +64,12 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-dark-accent flex-shrink-0">
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-semibold text-gray-100 truncate">{note.title}</h2>
-                <p className="text-sm text-gray-400">{note.subject} • {note.fileType?.toUpperCase()}</p>
+                <h2 className="text-lg font-semibold text-gray-100 truncate">
+                  {note.title}
+                </h2>
+                <p className="text-sm text-gray-400">
+                  {note.subject} • {note.fileType?.toUpperCase()}
+                </p>
               </div>
               <button
                 onClick={onClose}
@@ -66,10 +79,9 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
               </button>
             </div>
 
-            {/* Toolbar - PDF controls */}
-            {isPDF && (
+            {/* PDF Toolbar */}
+            {isPDF && !error && (
               <div className="flex items-center justify-between px-6 py-3 border-b border-dark-accent bg-dark-bg flex-shrink-0">
-                {/* Page controls */}
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={goToPrevPage}
@@ -79,18 +91,17 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <span className="text-sm text-gray-300 min-w-[80px] text-center">
-                    {loading ? '...' : `${pageNumber} / ${numPages}`}
+                    {loading ? 'Loading...' : `${pageNumber} / ${numPages}`}
                   </span>
                   <button
                     onClick={goToNextPage}
-                    disabled={pageNumber >= numPages}
+                    disabled={!numPages || pageNumber >= numPages}
                     className="p-1.5 rounded-lg text-gray-400 hover:text-gray-100 hover:bg-dark-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </button>
                 </div>
 
-                {/* Zoom controls */}
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={zoomOut}
@@ -119,36 +130,52 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
             {/* Content Area */}
             <div className="flex-1 overflow-auto p-4 flex justify-center bg-gray-900">
               {isPDF ? (
-                <Document
-                  file={note.fileUrl}
-                  onLoadSuccess={onDocumentLoadSuccess}
-                  onLoadError={(err) => { console.error(err); setLoading(false) }}
-                  loading={
-                    <div className="flex flex-col items-center justify-center py-20 space-y-3">
-                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-500" />
-                      <p className="text-gray-400 text-sm">Loading PDF...</p>
-                    </div>
-                  }
-                >
-                  <Page
-                    pageNumber={pageNumber}
-                    scale={scale}
-                    className="shadow-2xl"
-                    renderTextLayer={true}
-                    renderAnnotationLayer={true}
-                  />
-                </Document>
+                error ? (
+                  // ✅ Error state
+                  <div className="flex flex-col items-center justify-center py-20 space-y-4 text-center">
+                    <div className="text-5xl">⚠️</div>
+                    <h3 className="text-xl font-semibold text-gray-100">
+                      PDF load nahi ho saka
+                    </h3>
+                    <p className="text-gray-400 max-w-sm">
+                      File preview available nahi hai. Please download karke dekho.
+                    </p>
+                  </div>
+                ) : (
+                  <Document
+                    file={note.fileUrl}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    onLoadError={onDocumentLoadError}
+                    loading={
+                      <div className="flex flex-col items-center justify-center py-20 space-y-3">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-500" />
+                        <p className="text-gray-400 text-sm">Loading PDF...</p>
+                      </div>
+                    }
+                  >
+                    <Page
+                      pageNumber={pageNumber}
+                      scale={scale}
+                      className="shadow-2xl"
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                    />
+                  </Document>
+                )
               ) : (
-                // Non-PDF files ke liye message
+                // Non-PDF files
                 <div className="flex flex-col items-center justify-center py-20 space-y-4 text-center">
                   <div className="text-6xl">
-                    {note.fileType === 'docx' ? '📄' : note.fileType === 'pptx' ? '📊' : '📁'}
+                    {note.fileType === 'docx' ? '📄' 
+                      : note.fileType === 'pptx' ? '📊' 
+                      : '📁'}
                   </div>
                   <h3 className="text-xl font-semibold text-gray-100">
                     Preview not available for {note.fileType?.toUpperCase()} files
                   </h3>
                   <p className="text-gray-400 max-w-sm">
-                    Direct preview is only supported for PDF files. Please download this file to view it.
+                    Direct preview sirf PDF files ke liye supported hai. 
+                    Please download karo file dekhne ke liye.
                   </p>
                 </div>
               )}
@@ -163,11 +190,9 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
                 href={note.fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={onClose}>
-              
-                <Button>
-                  Download File
-                </Button>
+                onClick={onClose}
+              >
+                <Button>Download File</Button>
               </a>
             </div>
           </motion.div>
