@@ -7,12 +7,14 @@ import 'react-pdf/dist/Page/TextLayer.css'
 import Button from '../ui/Button'
 
 // ✅ Fix 1: CDN se worker load - 404 error fix
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+//pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
 
 // ✅ Fix 2: Cloudinary CORS fix
 const getPreviewUrl = (url) => {
   if (!url) return url
-  return url.replace('/raw/upload/', '/image/upload/fl_attachment:false/')
+  // Google PDF viewer se CORS bypass
+  return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
 }
 
 const NotePreviewModal = ({ isOpen, onClose, note }) => {
@@ -144,28 +146,12 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
                     </p>
                   </div>
                 ) : (
-                  <Document
-                    file={{
-                      url: getPreviewUrl(note.fileUrl),
-                      withCredentials: false
-                    }}
-                    onLoadSuccess={onDocumentLoadSuccess}
-                    onLoadError={onDocumentLoadError}
-                    loading={
-                      <div className="flex flex-col items-center justify-center py-20 space-y-3">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-500" />
-                        <p className="text-gray-400 text-sm">Loading PDF...</p>
-                      </div>
-                    }
-                  >
-                    <Page
-                      pageNumber={pageNumber}
-                      scale={scale}
-                      className="shadow-2xl"
-                      renderTextLayer={true}
-                      renderAnnotationLayer={true}
-                    />
-                  </Document>
+                  <iframe
+  src={getPreviewUrl(note.fileUrl)}
+  className="w-full h-full min-h-[600px] rounded"
+  title={note.title}
+  frameBorder="0"
+/>
                 )
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 space-y-4 text-center">
