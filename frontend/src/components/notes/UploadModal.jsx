@@ -170,7 +170,8 @@ const UploadModal = ({ isOpen, onClose }) => {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Upload New Note" size="lg">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Upload New Note" size="lg"
+    className="max-h-[90vh] overflow-y-auto">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* File Upload */}
         <div>

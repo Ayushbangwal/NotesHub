@@ -13,8 +13,9 @@ import usersRoutes from './src/routes/users.js';
 import adminRoutes from './src/routes/admin.js';
 
 // Load environment variables
-dotenv.config();
 
+dotenv.config();
+// local variable above
 const app = express();
 const PORT = process.env.PORT || 5000;
 

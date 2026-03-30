@@ -3,15 +3,8 @@ import Comment from '../models/Comment.js';
 import Download from '../models/Download.js';
 import User from '../models/User.js';
 import { validationResult } from 'express-validator';
-import { v2 as cloudinary } from 'cloudinary'; // ✅ NEW
-import { generateFileHash } from '../middleware/upload.js'; // ✅ NEW
-
-// ✅ NEW - Cloudinary config
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { v2 as cloudinary } from 'cloudinary';
+import { generateFileHash } from '../middleware/upload.js';
 
 // Get all notes with search and filters
 export const getAllNotes = async (req, res) => {
@@ -88,9 +81,23 @@ export const getNoteById = async (req, res) => {
   }
 };
 
-// ✅ UPDATED - Upload new note
+// ✅ FIXED - Upload new note
 export const uploadNote = async (req, res) => {
   try {
+    // ✅ Cloudinary config ANDAR rakhi - env variables guarantee se loaded honge
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+
+    // Debug - confirm env variables load ho rahe hain
+    console.log('Cloudinary config:', {
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY ? '✅ loaded' : '❌ missing',
+      api_secret: process.env.CLOUDINARY_API_SECRET ? '✅ loaded' : '❌ missing',
+    });
+
     // Check if file exists
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
@@ -105,7 +112,12 @@ export const uploadNote = async (req, res) => {
     if (!description?.trim()) {
       return res.status(400).json({ message: 'Description is required' });
     }
-    const validSubjects = ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Engineering', 'Medicine', 'Business', 'Economics', 'History', 'Literature', 'Psychology', 'Sociology', 'Philosophy', 'Other'];
+    const validSubjects = [
+      'Mathematics', 'Physics', 'Chemistry', 'Biology',
+      'Computer Science', 'Engineering', 'Medicine', 'Business',
+      'Economics', 'History', 'Literature', 'Psychology',
+      'Sociology', 'Philosophy', 'Other'
+    ];
     if (!subject || !validSubjects.includes(subject)) {
       return res.status(400).json({ message: 'Please select a valid subject' });
     }
@@ -128,12 +140,16 @@ export const uploadNote = async (req, res) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: 'noteshub',
-          resource_type: 'raw', // raw = non-image files (PDF, DOCX etc)
+          resource_type: 'raw',
           public_id: `${Date.now()}-${fileName}`,
         },
         (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
+          if (error) {
+            console.error('Cloudinary upload error:', error); // ✅ error detail dikhega
+            reject(error);
+          } else {
+            resolve(result);
+          }
         }
       );
       uploadStream.end(req.file.buffer);
@@ -169,8 +185,9 @@ export const uploadNote = async (req, res) => {
       message: 'Note uploaded successfully',
       note
     });
+
   } catch (error) {
-    console.error('Upload note error:', error);
+    console.error('Upload note error:', error); // ✅ full error terminal mein dikhega
     res.status(500).json({ message: 'Server error while uploading note' });
   }
 };
