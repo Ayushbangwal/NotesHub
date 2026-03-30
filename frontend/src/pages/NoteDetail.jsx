@@ -12,7 +12,8 @@ import {
   Share2,
   Flag,
   Edit,
-  Trash2
+  Trash2,
+  Eye  // ✅ NEW
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useNote, useDownloadNote, useRateNote, useToggleBookmark, useDeleteNote } from '../hooks/useNotes'
@@ -20,6 +21,7 @@ import Button from '../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import Modal from '../components/ui/Modal'
+import NotePreviewModal from '../components/notes/NotePreviewModal' // ✅ NEW
 import { formatDate, formatFileSize, getFileIcon, getSubjectColor } from '../utils/helpers'
 
 const NoteDetail = () => {
@@ -27,6 +29,7 @@ const NoteDetail = () => {
   const navigate = useNavigate()
   const { user, isAuthenticated } = useAuth()
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showPreview, setShowPreview] = useState(false) // ✅ NEW
   const [rating, setRating] = useState(0)
   const [hoveredRating, setHoveredRating] = useState(0)
 
@@ -108,7 +111,6 @@ const NoteDetail = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Back Button */}
       <Button
         variant="ghost"
         onClick={() => navigate(-1)}
@@ -117,7 +119,6 @@ const NoteDetail = () => {
         Back
       </Button>
 
-      {/* Note Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -142,7 +143,6 @@ const NoteDetail = () => {
                   {note.description}
                 </p>
 
-                {/* Tags */}
                 {note.tags && note.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-6">
                     {note.tags.map((tag, index) => (
@@ -156,7 +156,6 @@ const NoteDetail = () => {
                   </div>
                 )}
 
-                {/* Author Info */}
                 <div className="flex items-center space-x-4 text-sm text-gray-400">
                   <div className="flex items-center space-x-1">
                     <User className="h-4 w-4" />
@@ -181,6 +180,15 @@ const NoteDetail = () => {
                   icon={<Download className="h-4 w-4" />}
                 >
                   Download
+                </Button>
+
+                {/* ✅ NEW - Preview button */}
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPreview(true)}
+                  icon={<Eye className="h-4 w-4" />}
+                >
+                  Preview
                 </Button>
                 
                 <Button
@@ -289,7 +297,7 @@ const NoteDetail = () => {
         </motion.div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Modal */}
       <Modal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
@@ -301,10 +309,7 @@ const NoteDetail = () => {
             Are you sure you want to delete "{note.title}"? This action cannot be undone.
           </p>
           <div className="flex space-x-3 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteModal(false)}
-            >
+            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
               Cancel
             </Button>
             <Button
@@ -317,6 +322,13 @@ const NoteDetail = () => {
           </div>
         </div>
       </Modal>
+
+      {/* ✅ NEW - Preview Modal */}
+      <NotePreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        note={note}
+      />
     </div>
   )
 }

@@ -13,10 +13,19 @@
     "build": "cd frontend && npm run build",
     "start": "cd backend && npm start"
   },
-  "keywords": ["notes", "education", "sharing", "platform", "fullstack"],
+  "keywords": [
+    "notes",
+    "education",
+    "sharing",
+    "platform",
+    "fullstack"
+  ],
   "author": "NotesHub Team",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "react-pdf": "^10.4.1"
   }
 }
