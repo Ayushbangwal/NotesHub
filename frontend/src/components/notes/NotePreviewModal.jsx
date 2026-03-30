@@ -6,11 +6,13 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import Button from '../ui/Button'
 
-// ✅ Yahi fix hai — local worker, CDN nahi
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString()
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+
+// ✅ Cloudinary CORS fix
+const getPreviewUrl = (url) => {
+  if (!url) return url
+  return url.replace('/raw/upload/', '/raw/upload/fl_attachment:false/')
+}
 
 const NotePreviewModal = ({ isOpen, onClose, note }) => {
   const [numPages, setNumPages] = useState(null)
@@ -131,7 +133,6 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
             <div className="flex-1 overflow-auto p-4 flex justify-center bg-gray-900">
               {isPDF ? (
                 error ? (
-                  // ✅ Error state
                   <div className="flex flex-col items-center justify-center py-20 space-y-4 text-center">
                     <div className="text-5xl">⚠️</div>
                     <h3 className="text-xl font-semibold text-gray-100">
@@ -143,7 +144,10 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
                   </div>
                 ) : (
                   <Document
-                    file={note.fileUrl}
+                    file={{
+                      url: getPreviewUrl(note.fileUrl), // ✅ CORS fix
+                      httpHeaders: { 'Content-Type': 'application/pdf' }
+                    }}
                     onLoadSuccess={onDocumentLoadSuccess}
                     onLoadError={onDocumentLoadError}
                     loading={
@@ -163,18 +167,17 @@ const NotePreviewModal = ({ isOpen, onClose, note }) => {
                   </Document>
                 )
               ) : (
-                // Non-PDF files
                 <div className="flex flex-col items-center justify-center py-20 space-y-4 text-center">
                   <div className="text-6xl">
-                    {note.fileType === 'docx' ? '📄' 
-                      : note.fileType === 'pptx' ? '📊' 
+                    {note.fileType === 'docx' ? '📄'
+                      : note.fileType === 'pptx' ? '📊'
                       : '📁'}
                   </div>
                   <h3 className="text-xl font-semibold text-gray-100">
                     Preview not available for {note.fileType?.toUpperCase()} files
                   </h3>
                   <p className="text-gray-400 max-w-sm">
-                    Direct preview sirf PDF files ke liye supported hai. 
+                    Direct preview sirf PDF files ke liye supported hai.
                     Please download karo file dekhne ke liye.
                   </p>
                 </div>
