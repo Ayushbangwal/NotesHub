@@ -12,10 +12,11 @@ import {
   Share2,
   Check
 } from 'lucide-react'
+import toast from 'react-hot-toast'  // ✅ YEH LINE ADD KI
 import { useAuth } from '../../hooks/useAuth'
 import { useDownloadNote, useToggleBookmark } from '../../hooks/useNotes'
 import Button from '../ui/Button'
-import NotePreviewModal from './NotePreviewModal' // ✅ NEW import
+import NotePreviewModal from './NotePreviewModal'
 import { formatDate, formatFileSize, getFileIcon, getSubjectColor, truncateText } from '../../utils/helpers'
 
 const NoteCard = ({ note, animate = true }) => {
@@ -23,7 +24,7 @@ const NoteCard = ({ note, animate = true }) => {
   const downloadNote = useDownloadNote()
   const toggleBookmark = useToggleBookmark()
   const [copied, setCopied] = useState(false)
-  const [showPreview, setShowPreview] = useState(false) // ✅ NEW
+  const [showPreview, setShowPreview] = useState(false)
 
   const handleDownload = async (e) => {
     e.preventDefault()
@@ -65,7 +66,6 @@ const NoteCard = ({ note, animate = true }) => {
     }
   }
 
-  // ✅ NEW - Preview handler
   const handlePreview = (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -198,7 +198,6 @@ const NoteCard = ({ note, animate = true }) => {
                   }
                 </Button>
 
-                {/* ✅ Preview button - ab properly wired hai */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -214,7 +213,6 @@ const NoteCard = ({ note, animate = true }) => {
         </Link>
       </MotionComponent>
 
-      {/* ✅ Preview Modal - Link ke bahar rakha */}
       <NotePreviewModal
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
