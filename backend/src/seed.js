@@ -11,7 +11,7 @@ const sampleUsers = [
   {
     username: 'admin',
     email: 'ayushbangwal0@gmail.com',
-    password: 'Admin123!',
+    password: 'handsome$123',
     role: 'admin',
     avatar: 'https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff'
   },
