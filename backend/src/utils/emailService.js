@@ -1,17 +1,24 @@
 import nodemailer from 'nodemailer'
 
-// Transporter — Gmail se connect karta hai
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-})
+// ✅ Transporter function ke andar banao — env variables guaranteed load honge
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  })
+}
 
-// ✅ Download notification email
 export const sendDownloadNotification = async ({ ownerEmail, ownerName, noteTitle, downloaderName }) => {
   try {
+    // ✅ Debug — terminal mein dikhega
+    console.log('📧 EMAIL_USER:', process.env.EMAIL_USER)
+    console.log('📧 EMAIL_PASS exists:', !!process.env.EMAIL_PASS)
+    console.log('📧 Sending to:', ownerEmail)
+
+    const transporter = createTransporter()
     await transporter.sendMail({
       from: `"NotesHub" <${process.env.EMAIL_USER}>`,
       to: ownerEmail,
@@ -24,9 +31,7 @@ export const sendDownloadNotification = async ({ ownerEmail, ownerName, noteTitl
           <div style="padding: 32px;">
             <h2 style="color: #1f2937; margin-top: 0;">Someone downloaded your note! 📥</h2>
             <p style="color: #4b5563;">Hey <strong>${ownerName}</strong>,</p>
-            <p style="color: #4b5563;">
-              <strong>${downloaderName}</strong> just downloaded your note:
-            </p>
+            <p style="color: #4b5563;"><strong>${downloaderName}</strong> just downloaded your note:</p>
             <div style="background: #ede9fe; border-left: 4px solid #4f46e5; padding: 14px 20px; border-radius: 6px; margin: 20px 0;">
               <p style="margin: 0; color: #4f46e5; font-weight: bold; font-size: 16px;">📄 ${noteTitle}</p>
             </div>
@@ -45,14 +50,15 @@ export const sendDownloadNotification = async ({ ownerEmail, ownerName, noteTitl
     console.log('✅ Download notification email sent to:', ownerEmail)
   } catch (error) {
     console.error('❌ Email send failed:', error.message)
-    // Email fail hone se request fail na ho isliye error throw nahi kar rahe
   }
 }
 
-// ✅ Rating notification email
 export const sendRatingNotification = async ({ ownerEmail, ownerName, noteTitle, raterName, rating }) => {
   const stars = '⭐'.repeat(rating)
   try {
+    console.log('📧 Sending rating email to:', ownerEmail)
+
+    const transporter = createTransporter()
     await transporter.sendMail({
       from: `"NotesHub" <${process.env.EMAIL_USER}>`,
       to: ownerEmail,
@@ -65,9 +71,7 @@ export const sendRatingNotification = async ({ ownerEmail, ownerName, noteTitle,
           <div style="padding: 32px;">
             <h2 style="color: #1f2937; margin-top: 0;">Your note got a new rating! ${stars}</h2>
             <p style="color: #4b5563;">Hey <strong>${ownerName}</strong>,</p>
-            <p style="color: #4b5563;">
-              <strong>${raterName}</strong> rated your note:
-            </p>
+            <p style="color: #4b5563;"><strong>${raterName}</strong> rated your note:</p>
             <div style="background: #ede9fe; border-left: 4px solid #4f46e5; padding: 14px 20px; border-radius: 6px; margin: 20px 0;">
               <p style="margin: 0 0 8px 0; color: #4f46e5; font-weight: bold; font-size: 16px;">📄 ${noteTitle}</p>
               <p style="margin: 0; color: #7c3aed; font-size: 22px;">${stars} <span style="font-size: 14px; color: #6b7280;">(${rating}/5)</span></p>
