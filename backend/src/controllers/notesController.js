@@ -5,25 +5,18 @@ import User from '../models/User.js';
 import { validationResult } from 'express-validator';
 import { v2 as cloudinary } from 'cloudinary';
 import { generateFileHash } from '../middleware/upload.js';
+import { sendDownloadNotification, sendRatingNotification } from '../utils/emailService.js'; // ✅ NEW
 
 // Get all notes with search and filters
 export const getAllNotes = async (req, res) => {
   try {
     const {
-      search,
-      subject,
-      tags,
-      fileType,
-      sortBy = 'createdAt',
-      order = 'desc',
-      page = 1,
-      limit = 12
+      search, subject, tags, fileType,
+      sortBy = 'createdAt', order = 'desc',
+      page = 1, limit = 12
     } = req.query;
 
-    const query = {
-      isDeleted: false,
-      isApproved: true
-    };
+    const query = { isDeleted: false, isApproved: true };
 
     if (search) query.$text = { $search: search };
     if (subject) query.subject = subject;
@@ -81,37 +74,24 @@ export const getNoteById = async (req, res) => {
   }
 };
 
-// ✅ FIXED - Upload new note
+// Upload new note
 export const uploadNote = async (req, res) => {
   try {
-    // ✅ Cloudinary config ANDAR rakhi - env variables guarantee se loaded honge
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET,
     });
 
-    // Debug - confirm env variables load ho rahe hain
-    console.log('Cloudinary config:', {
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY ? '✅ loaded' : '❌ missing',
-      api_secret: process.env.CLOUDINARY_API_SECRET ? '✅ loaded' : '❌ missing',
-    });
-
-    // Check if file exists
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
     const { title, description, subject, tags } = req.body;
 
-    // Manual validation
-    if (!title?.trim()) {
-      return res.status(400).json({ message: 'Title is required' });
-    }
-    if (!description?.trim()) {
-      return res.status(400).json({ message: 'Description is required' });
-    }
+    if (!title?.trim()) return res.status(400).json({ message: 'Title is required' });
+    if (!description?.trim()) return res.status(400).json({ message: 'Description is required' });
+
     const validSubjects = [
       'Mathematics', 'Physics', 'Chemistry', 'Biology',
       'Computer Science', 'Engineering', 'Medicine', 'Business',
@@ -122,72 +102,46 @@ export const uploadNote = async (req, res) => {
       return res.status(400).json({ message: 'Please select a valid subject' });
     }
 
-    // Generate file hash for duplicate detection
     const fileHash = generateFileHash(req.file.buffer);
-
-    // Check for duplicate file
     const existingNote = await Note.findOne({ fileHash, isDeleted: false });
     if (existingNote) {
       return res.status(400).json({ message: 'This file has already been uploaded' });
     }
 
-    // Get file type from original name
     const fileType = req.file.originalname.split('.').pop().toLowerCase();
     const fileName = req.file.originalname;
 
-    // ✅ Upload to Cloudinary
     const uploadResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'noteshub',
-          resource_type: 'raw',
-          public_id: `${Date.now()}-${fileName}`,
-        },
+        { folder: 'noteshub', resource_type: 'raw', public_id: `${Date.now()}-${fileName}` },
         (error, result) => {
-          if (error) {
-            console.error('Cloudinary upload error:', error); // ✅ error detail dikhega
-            reject(error);
-          } else {
-            resolve(result);
-          }
+          if (error) reject(error);
+          else resolve(result);
         }
       );
       uploadStream.end(req.file.buffer);
     });
 
-    const fileUrl = uploadResult.secure_url;
-    const fileSize = req.file.size;
-
-    // Create new note
     const note = new Note({
       title: title.trim(),
       description: description.trim(),
       subject,
       tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
-      fileUrl,
+      fileUrl: uploadResult.secure_url,
       fileName,
       fileType,
-      fileSize,
+      fileSize: req.file.size,
       fileHash,
       uploadedBy: req.user.id
     });
 
     await note.save();
-
-    // Update user stats
-    await User.findByIdAndUpdate(req.user.id, {
-      $inc: { 'stats.notesUploaded': 1 }
-    });
-
+    await User.findByIdAndUpdate(req.user.id, { $inc: { 'stats.notesUploaded': 1 } });
     await note.populate('uploadedBy', 'username avatar');
 
-    res.status(201).json({
-      message: 'Note uploaded successfully',
-      note
-    });
-
+    res.status(201).json({ message: 'Note uploaded successfully', note });
   } catch (error) {
-    console.error('Upload note error:', error); // ✅ full error terminal mein dikhega
+    console.error('Upload note error:', error);
     res.status(500).json({ message: 'Server error while uploading note' });
   }
 };
@@ -201,8 +155,8 @@ export const updateNote = async (req, res) => {
     }
 
     const { title, description, subject, tags } = req.body;
-
     const note = await Note.findById(req.params.id);
+
     if (!note || note.isDeleted) {
       return res.status(404).json({ message: 'Note not found' });
     }
@@ -240,10 +194,7 @@ export const deleteNote = async (req, res) => {
 
     note.isDeleted = true;
     await note.save();
-
-    await User.findByIdAndUpdate(note.uploadedBy, {
-      $inc: { 'stats.notesUploaded': -1 }
-    });
+    await User.findByIdAndUpdate(note.uploadedBy, { $inc: { 'stats.notesUploaded': -1 } });
 
     res.json({ message: 'Note deleted successfully' });
   } catch (error) {
@@ -269,9 +220,24 @@ export const downloadNote = async (req, res) => {
       await Download.create({ user: req.user.id, note: note._id });
       note.downloads += 1;
       await note.save();
-      await User.findByIdAndUpdate(note.uploadedBy, {
-        $inc: { 'stats.totalDownloads': 1 }
-      });
+
+      // ✅ Owner fetch + stats update
+      const owner = await User.findByIdAndUpdate(
+        note.uploadedBy,
+        { $inc: { 'stats.totalDownloads': 1 } },
+        { new: true }
+      )
+
+      // ✅ Email sirf tab bhejo jab downloader aur owner alag hon
+      if (owner && owner._id.toString() !== req.user.id) {
+        const downloader = await User.findById(req.user.id).select('username')
+        await sendDownloadNotification({
+          ownerEmail: owner.email,
+          ownerName: owner.username,
+          noteTitle: note.title,
+          downloaderName: downloader?.username || 'Someone'
+        })
+      }
     }
 
     res.json({
@@ -300,6 +266,9 @@ export const rateNote = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
+    // ✅ Check karo pehle se rating hai ya nahi
+    const isNewRating = !note.ratings.find(r => r.user.toString() === req.user.id)
+
     const existingRatingIndex = note.ratings.findIndex(
       r => r.user.toString() === req.user.id
     );
@@ -311,6 +280,22 @@ export const rateNote = async (req, res) => {
     }
 
     await note.save();
+
+    // ✅ Sirf new rating pe email, update pe nahi. Aur apni note rate karne pe nahi.
+    if (isNewRating && note.uploadedBy.toString() !== req.user.id) {
+      const owner = await User.findById(note.uploadedBy).select('username email')
+      const rater = await User.findById(req.user.id).select('username')
+
+      if (owner) {
+        await sendRatingNotification({
+          ownerEmail: owner.email,
+          ownerName: owner.username,
+          noteTitle: note.title,
+          raterName: rater?.username || 'Someone',
+          rating
+        })
+      }
+    }
 
     res.json({
       message: 'Rating submitted successfully',
