@@ -11,13 +11,15 @@ import {
   FileText,
   Share2,
   Check,
-  Link2
+  Link2,
+  Flag        // ✅ NEW
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../hooks/useAuth'
 import { useDownloadNote, useToggleBookmark } from '../../hooks/useNotes'
 import Button from '../ui/Button'
 import NotePreviewModal from './NotePreviewModal'
+import ReportModal from './ReportModal'    // ✅ NEW
 import { formatDate, formatFileSize, getFileIcon, getSubjectColor, truncateText } from '../../utils/helpers'
 
 const NoteCard = ({ note, animate = true }) => {
@@ -27,6 +29,7 @@ const NoteCard = ({ note, animate = true }) => {
   const [copied, setCopied] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [showShareMenu, setShowShareMenu] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)  // ✅ NEW
   const shareMenuRef = useRef(null)
 
   const noteUrl = `${window.location.origin}/notes/${note._id}`
@@ -104,7 +107,19 @@ const NoteCard = ({ note, animate = true }) => {
     setShowPreview(true)
   }
 
+  // ✅ NEW
+  const handleReport = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isAuthenticated) {
+      toast.error('Please login to report notes')
+      return
+    }
+    setShowReportModal(true)
+  }
+
   const isBookmarked = note.bookmarks?.some(bookmark => bookmark._id === user?._id)
+  const isOwnNote = note.uploadedBy?._id === user?._id || note.uploadedBy === user?._id  // ✅ NEW
   const MotionComponent = animate ? motion.div : 'div'
   
   return (
@@ -134,14 +149,28 @@ const NoteCard = ({ note, animate = true }) => {
                     {note.subject}
                   </span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleBookmark}
-                  className={`p-1 ${isBookmarked ? 'text-primary-400' : 'text-gray-400'}`}
-                >
-                  <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
-                </Button>
+                <div className="flex items-center gap-1">
+                  {/* ✅ NEW: Report Button - sirf dusron ke notes pe dikhega */}
+                  {isAuthenticated && !isOwnNote && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReport}
+                      className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                      title="Report this note"
+                    >
+                      <Flag className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBookmark}
+                    className={`p-1 ${isBookmarked ? 'text-primary-400' : 'text-gray-400'}`}
+                  >
+                    <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
+                  </Button>
+                </div>
               </div>
 
               <h3 className="text-lg font-semibold text-gray-100 mb-2 line-clamp-2">
@@ -236,12 +265,9 @@ const NoteCard = ({ note, animate = true }) => {
                         style={{ background: 'linear-gradient(145deg, #1e2035, #16182a)' }}
                         onClick={e => e.stopPropagation()}
                       >
-                        {/* Header label */}
                         <div className="px-4 py-2 border-b border-white/5">
                           <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Share via</p>
                         </div>
-
-                        {/* Copy Link */}
                         <button
                           onClick={handleCopyLink}
                           className="flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-all duration-150 group hover:bg-white/5"
@@ -249,20 +275,13 @@ const NoteCard = ({ note, animate = true }) => {
                           <span className={`flex items-center justify-center w-7 h-7 rounded-lg transition-colors ${
                             copied ? 'bg-green-500/20' : 'bg-white/8 group-hover:bg-white/12'
                           }`}>
-                            {copied
-                              ? <Check className="h-3.5 w-3.5 text-green-400" />
-                              : <Link2 className="h-3.5 w-3.5 text-gray-400" />
-                            }
+                            {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Link2 className="h-3.5 w-3.5 text-gray-400" />}
                           </span>
                           <span className={copied ? 'text-green-400' : 'text-gray-300'}>
                             {copied ? 'Copied!' : 'Copy Link'}
                           </span>
                         </button>
-
-                        {/* Divider */}
                         <div className="mx-4 border-t border-white/5" />
-
-                        {/* WhatsApp */}
                         <button
                           onClick={handleWhatsApp}
                           className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-300 transition-all duration-150 group hover:bg-white/5"
@@ -274,11 +293,7 @@ const NoteCard = ({ note, animate = true }) => {
                           </span>
                           <span>WhatsApp</span>
                         </button>
-
-                        {/* Divider */}
                         <div className="mx-4 border-t border-white/5" />
-
-                        {/* Twitter/X */}
                         <button
                           onClick={handleTwitter}
                           className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-300 transition-all duration-150 group hover:bg-white/5"
@@ -316,6 +331,15 @@ const NoteCard = ({ note, animate = true }) => {
         onClose={() => setShowPreview(false)}
         note={note}
       />
+
+      {/* ✅ NEW: Report Modal */}
+      {showReportModal && (
+        <ReportModal
+          noteId={note._id}
+          noteTitle={note.title}
+          onClose={() => setShowReportModal(false)}
+        />
+      )}
     </>
   )
 }

@@ -11,6 +11,7 @@ import authRoutes from './src/routes/auth.js';
 import notesRoutes from './src/routes/notes.js';
 import usersRoutes from './src/routes/users.js';
 import adminRoutes from './src/routes/admin.js';
+import reportRoutes from './src/routes/reports.js';
 
 // Load environment variables
 
@@ -42,6 +43,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
