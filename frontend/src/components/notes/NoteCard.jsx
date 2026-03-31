@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
@@ -10,9 +10,10 @@ import {
   User,
   FileText,
   Share2,
-  Check
+  Check,
+  Link2
 } from 'lucide-react'
-import toast from 'react-hot-toast'  // ✅ YEH LINE ADD KI
+import toast from 'react-hot-toast'
 import { useAuth } from '../../hooks/useAuth'
 import { useDownloadNote, useToggleBookmark } from '../../hooks/useNotes'
 import Button from '../ui/Button'
@@ -25,6 +26,20 @@ const NoteCard = ({ note, animate = true }) => {
   const toggleBookmark = useToggleBookmark()
   const [copied, setCopied] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [showShareMenu, setShowShareMenu] = useState(false)
+  const shareMenuRef = useRef(null)
+
+  const noteUrl = `${window.location.origin}/notes/${note._id}`
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target)) {
+        setShowShareMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const handleDownload = async (e) => {
     e.preventDefault()
@@ -46,24 +61,41 @@ const NoteCard = ({ note, animate = true }) => {
     await toggleBookmark.mutateAsync(note._id)
   }
 
-  const handleShare = async (e) => {
+  const handleCopyLink = async (e) => {
     e.preventDefault()
     e.stopPropagation()
-    const url = `${window.location.origin}/notes/${note._id}`
     try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      const textArea = document.createElement('textarea')
-      textArea.value = url
-      document.body.appendChild(textArea)
-      textArea.select()
+      await navigator.clipboard.writeText(noteUrl)
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = noteUrl
+      document.body.appendChild(ta)
+      ta.select()
       document.execCommand('copy')
-      document.body.removeChild(textArea)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      document.body.removeChild(ta)
     }
+    setCopied(true)
+    setShowShareMenu(false)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleWhatsApp = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const text = `Check out these notes: *${note.title}*\n${noteUrl}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+    setShowShareMenu(false)
+  }
+
+  const handleTwitter = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const text = `Check out "${note.title}" notes on NotesHub!`
+    window.open(
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(noteUrl)}`,
+      '_blank'
+    )
+    setShowShareMenu(false)
   }
 
   const handlePreview = (e) => {
@@ -73,7 +105,6 @@ const NoteCard = ({ note, animate = true }) => {
   }
 
   const isBookmarked = note.bookmarks?.some(bookmark => bookmark._id === user?._id)
-
   const MotionComponent = animate ? motion.div : 'div'
   
   return (
@@ -124,10 +155,7 @@ const NoteCard = ({ note, animate = true }) => {
               {note.tags && note.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-4">
                   {note.tags.slice(0, 3).map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 text-xs bg-dark-accent text-gray-300 rounded"
-                    >
+                    <span key={index} className="px-2 py-1 text-xs bg-dark-accent text-gray-300 rounded">
                       {tag}
                     </span>
                   ))}
@@ -181,23 +209,56 @@ const NoteCard = ({ note, animate = true }) => {
                   Download
                 </Button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleShare}
-                  className={`transition-all duration-200 ${
-                    copied 
-                      ? 'text-green-400 border-green-400' 
-                      : 'text-gray-400'
-                  }`}
-                  title={copied ? 'Link Copied!' : 'Copy Link'}
-                >
-                  {copied 
-                    ? <Check className="h-4 w-4" /> 
-                    : <Share2 className="h-4 w-4" />
-                  }
-                </Button>
+                {/* Share Dropdown */}
+                <div className="relative" ref={shareMenuRef}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setShowShareMenu(prev => !prev)
+                    }}
+                    className={`transition-all duration-200 ${copied ? 'text-green-400 border-green-400' : 'text-gray-400'}`}
+                    title="Share"
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                  </Button>
 
+                  {showShareMenu && (
+                    <div
+                      className="absolute bottom-full mb-2 right-0 z-50 bg-dark-card border border-dark-accent rounded-xl shadow-xl overflow-hidden w-44"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={handleCopyLink}
+                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-300 hover:bg-dark-accent transition-colors"
+                      >
+                        {copied
+                          ? <Check className="h-4 w-4 text-green-400" />
+                          : <Link2 className="h-4 w-4 text-gray-400" />
+                        }
+                        {copied ? 'Copied!' : 'Copy Link'}
+                      </button>
+                      <button
+                        onClick={handleWhatsApp}
+                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-300 hover:bg-dark-accent transition-colors"
+                      >
+                        <span className="text-base">💬</span>
+                        WhatsApp
+                      </button>
+                      <button
+                        onClick={handleTwitter}
+                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-300 hover:bg-dark-accent transition-colors"
+                      >
+                        <span className="text-base">🐦</span>
+                        Twitter / X
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Preview Button */}
                 <Button
                   variant="outline"
                   size="sm"
