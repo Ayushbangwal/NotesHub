@@ -14,20 +14,6 @@ const sampleUsers = [
     password: 'handsome$123',
     role: 'admin',
     avatar: 'https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff'
-  },
-  {
-    username: 'johnstudent',
-    email: 'john@student.com',
-    password: 'Student123!',
-    role: 'user',
-    avatar: 'https://ui-avatars.com/api/?name=John&background=10b981&color=fff'
-  },
-  {
-    username: 'janestudent',
-    email: 'jane@student.com',
-    password: 'Student123!',
-    role: 'user',
-    avatar: 'https://ui-avatars.com/api/?name=Jane&background=f59e0b&color=fff'
   }
 ];
 
@@ -175,10 +161,7 @@ const seedDatabase = async () => {
         ...noteData,
         uploadedBy: randomUser._id,
         downloads: Math.floor(Math.random() * 100),
-        ratings: [
-          { user: createdUsers[1]._id, rating: Math.floor(Math.random() * 2) + 4 },
-          { user: createdUsers[2]._id, rating: Math.floor(Math.random() * 2) + 3 }
-        ]
+        ratings: []
       });
 
       await note.save();
