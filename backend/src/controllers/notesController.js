@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import { validationResult } from 'express-validator';
 import { v2 as cloudinary } from 'cloudinary';
 import { generateFileHash } from '../middleware/upload.js';
-import { sendDownloadNotification, sendRatingNotification } from '../utils/emailService.js'; // ✅ NEW
+import { sendDownloadNotification, sendRatingNotification } from '../utils/emailService.js';
 
 // Get all notes with search and filters
 export const getAllNotes = async (req, res) => {
@@ -216,28 +216,38 @@ export const downloadNote = async (req, res) => {
       note: note._id
     });
 
+    console.log('⬇️ Download attempt — existingDownload:', !!existingDownload)
+
     if (!existingDownload) {
       await Download.create({ user: req.user.id, note: note._id });
       note.downloads += 1;
       await note.save();
 
-      // ✅ Owner fetch + stats update
       const owner = await User.findByIdAndUpdate(
         note.uploadedBy,
         { $inc: { 'stats.totalDownloads': 1 } },
         { new: true }
       )
 
-      // ✅ Email sirf tab bhejo jab downloader aur owner alag hon
+      console.log('🔍 Owner:', owner?.username, '|', owner?.email)
+      console.log('🔍 Downloader ID:', req.user.id)
+      console.log('🔍 Owner ID:', owner?._id?.toString())
+      console.log('🔍 Same person?:', owner?._id?.toString() === req.user.id)
+
       if (owner && owner._id.toString() !== req.user.id) {
         const downloader = await User.findById(req.user.id).select('username')
+        console.log('📧 Sending email to:', owner.email)
         await sendDownloadNotification({
           ownerEmail: owner.email,
           ownerName: owner.username,
           noteTitle: note.title,
           downloaderName: downloader?.username || 'Someone'
         })
+      } else {
+        console.log('⚠️ Email skip — same user ya owner null')
       }
+    } else {
+      console.log('⏭️ Already downloaded before — email skip')
     }
 
     res.json({
@@ -266,8 +276,8 @@ export const rateNote = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    // ✅ Check karo pehle se rating hai ya nahi
     const isNewRating = !note.ratings.find(r => r.user.toString() === req.user.id)
+    console.log('⭐ Rate attempt — isNewRating:', isNewRating)
 
     const existingRatingIndex = note.ratings.findIndex(
       r => r.user.toString() === req.user.id
@@ -281,12 +291,14 @@ export const rateNote = async (req, res) => {
 
     await note.save();
 
-    // ✅ Sirf new rating pe email, update pe nahi. Aur apni note rate karne pe nahi.
     if (isNewRating && note.uploadedBy.toString() !== req.user.id) {
       const owner = await User.findById(note.uploadedBy).select('username email')
       const rater = await User.findById(req.user.id).select('username')
 
+      console.log('🔍 Rating owner:', owner?.username, '|', owner?.email)
+
       if (owner) {
+        console.log('📧 Sending rating email to:', owner.email)
         await sendRatingNotification({
           ownerEmail: owner.email,
           ownerName: owner.username,
@@ -295,6 +307,8 @@ export const rateNote = async (req, res) => {
           rating
         })
       }
+    } else {
+      console.log('⚠️ Rating email skip — same user ya existing rating')
     }
 
     res.json({

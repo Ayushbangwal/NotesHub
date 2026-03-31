@@ -10,7 +10,7 @@ dotenv.config();
 const sampleUsers = [
   {
     username: 'admin',
-    email: 'admin@noteshub.com',
+    email: 'ayushbangwal0@gmail.com',
     password: 'Admin123!',
     role: 'admin',
     avatar: 'https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff'
