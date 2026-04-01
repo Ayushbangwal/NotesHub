@@ -13,6 +13,7 @@ const sampleUsers = [
     email: 'ayushbangwal0@gmail.com',
     password: 'handsome$123',
     role: 'admin',
+    isEmailVerified: true,
     avatar: 'https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff'
   }
 ];

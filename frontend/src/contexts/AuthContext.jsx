@@ -43,17 +43,39 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
       const response = await authService.login(credentials)
-      
+
+      // ✅ NEW — Email verified nahi hai
+      if (response.requiresVerification) {
+        toast.error('Please verify your email first!')
+        return {
+          success: false,
+          requiresVerification: true,
+          email: response.email
+        }
+      }
+
       if (response.user && response.token) {
         localStorage.setItem('token', response.token)
         setUser(response.user)
         toast.success('Welcome back to NotesHub!')
         return { success: true }
       }
-      
+
       return { success: false, message: 'Login failed' }
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed'
+      const data = error.response?.data
+
+      // ✅ NEW — 403 with requiresVerification
+      if (error.response?.status === 403 && data?.requiresVerification) {
+        toast.error('Please verify your email first!')
+        return {
+          success: false,
+          requiresVerification: true,
+          email: data.email
+        }
+      }
+
+      const message = data?.message || 'Login failed'
       toast.error(message)
       return { success: false, message }
     } finally {
@@ -65,14 +87,23 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
       const response = await authService.signup(userData)
-      
+
+      // ✅ NEW — OTP verification required
+      if (response.requiresVerification) {
+        return {
+          success: false,
+          requiresVerification: true,
+          email: response.email
+        }
+      }
+
       if (response.user && response.token) {
         localStorage.setItem('token', response.token)
         setUser(response.user)
         toast.success('Welcome to NotesHub!')
         return { success: true }
       }
-      
+
       return { success: false, message: 'Signup failed' }
     } catch (error) {
       const message = error.response?.data?.message || 'Signup failed'

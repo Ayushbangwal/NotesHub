@@ -22,6 +22,8 @@ import ChangePassword from './pages/ChangePassword' // ✅ NEW
 // UI Components
 import LoadingSpinner from './components/ui/LoadingSpinner'
 import BackToTop from './components/BackToTop' // ✅ NEW
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 function App() {
   const { user, loading } = useAuth()
@@ -63,6 +65,8 @@ function App() {
               <Route path="/change-password" element={user ? <ChangePassword /> : <Login />} /> {/* ✅ NEW */}
 
               <Route path="/admin" element={user?.role === 'admin' ? <Admin /> : <Home />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
             </Routes>
           </motion.div>
         </main>
