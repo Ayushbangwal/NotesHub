@@ -1,5 +1,7 @@
 import Report from '../models/Report.js';
 import Note from '../models/Note.js';
+import User from '../models/User.js';
+import { sendReportNotification } from '../utils/emailService.js';
 
 // POST /api/reports
 export const createReport = async (req, res) => {
@@ -7,10 +9,10 @@ export const createReport = async (req, res) => {
     const { noteId, reason, description } = req.body;
     const reportedBy = req.user._id;
 
-    const note = await Note.findById(noteId);
+    const note = await Note.findById(noteId).populate('uploadedBy', 'username email');
     if (!note) return res.status(404).json({ message: 'Note not found' });
 
-    if (note.uploadedBy.toString() === reportedBy.toString()) {
+    if (note.uploadedBy._id.toString() === reportedBy.toString()) {
       return res.status(400).json({ message: 'You cannot report your own note' });
     }
 
@@ -20,6 +22,21 @@ export const createReport = async (req, res) => {
     }
 
     const report = await Report.create({ note: noteId, reportedBy, reason, description });
+
+    // ✅ Admin ko email bhejo
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER
+    const reporterName = req.user.username || req.user.email
+
+    // Email async chalao — response hold mat karo
+    sendReportNotification({
+      adminEmail,
+      reporterName,
+      noteTitle: note.title,
+      noteId: note._id,
+      reason,
+      description: description || ''
+    }).catch(err => console.error('Report email error:', err))
+
     res.status(201).json({ message: 'Note reported successfully', report });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
