@@ -17,6 +17,7 @@ import { useAuth } from '../../hooks/useAuth'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import { cn } from '../../utils/helpers'
+import AnnouncementBanner from './AnnouncementBanner'
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth()
@@ -50,6 +51,7 @@ const Navbar = () => {
   ]
 
   return (
+    
     <nav className="sticky top-0 z-40 border-b border-dark-border bg-dark-primary/95 backdrop-blur-sm">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">

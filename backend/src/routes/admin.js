@@ -1,19 +1,44 @@
 import express from 'express';
-import { getStats, getAllUsers, toggleUserBan, getAllNotes, deleteNote, toggleNoteApproval } from '../controllers/adminController.js';
+import {
+  getStats,
+  getAllUsers,
+  toggleUserBan,
+  getAllNotes,
+  deleteNote,
+  toggleNoteApproval,
+  bulkNoteAction,
+  createAnnouncement,
+  getAllAnnouncements,
+  getActiveAnnouncements,
+  toggleAnnouncement,
+  deleteAnnouncement
+} from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// All routes are protected and admin only
-router.use(protect);
-router.use(adminOnly);
+// Stats
+router.get('/stats', protect, adminOnly, getStats);
 
-// Admin dashboard routes
-router.get('/stats', getStats);
-router.get('/users', getAllUsers);
-router.put('/users/:id/ban', toggleUserBan);
-router.get('/notes', getAllNotes);
-router.delete('/notes/:id', deleteNote);
-router.put('/notes/:id/approve', toggleNoteApproval);
+// Users
+router.get('/users', protect, adminOnly, getAllUsers);
+router.patch('/users/:id/ban', protect, adminOnly, toggleUserBan);
+
+// Notes
+router.get('/notes', protect, adminOnly, getAllNotes);
+router.delete('/notes/:id', protect, adminOnly, deleteNote);
+router.patch('/notes/:id/approve', protect, adminOnly, toggleNoteApproval);
+
+// ✅ NEW — Bulk Actions
+router.post('/notes/bulk', protect, adminOnly, bulkNoteAction);
+
+// ✅ NEW — Announcements
+router.post('/announcements', protect, adminOnly, createAnnouncement);
+router.get('/announcements', protect, adminOnly, getAllAnnouncements);
+router.patch('/announcements/:id/toggle', protect, adminOnly, toggleAnnouncement);
+router.delete('/announcements/:id', protect, adminOnly, deleteAnnouncement);
+
+// Public — website pe banner dikhane ke liye
+router.get('/announcements/active', getActiveAnnouncements);
 
 export default router;
