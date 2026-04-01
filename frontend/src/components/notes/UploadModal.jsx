@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
-import { Upload, X, FileText, AlertCircle } from 'lucide-react'
-import { useUploadNote } from '../../hooks/useNotes'
+import { Upload, X, FileText } from 'lucide-react'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
@@ -10,7 +9,8 @@ import Textarea from '../ui/Textarea'
 import Select from '../ui/Select'
 import { validateFile } from '../../utils/validators'
 import toast from 'react-hot-toast'
-import confetti from 'canvas-confetti' // ✅ NEW
+import confetti from 'canvas-confetti'
+import { useQueryClient } from '@tanstack/react-query'
 
 const UploadModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -21,9 +21,10 @@ const UploadModal = ({ isOpen, onClose }) => {
   })
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0) // ✅ NEW
   const [errors, setErrors] = useState({})
 
-  const uploadNote = useUploadNote()
+  const queryClient = useQueryClient()
 
   const subjects = [
     { value: '', label: 'Select a subject' },
@@ -44,9 +45,7 @@ const UploadModal = ({ isOpen, onClose }) => {
     { value: 'Other', label: 'Other' }
   ]
 
-  // ✅ NEW - Confetti function
   const fireConfetti = () => {
-    // Left side
     confetti({
       particleCount: 80,
       angle: 60,
@@ -54,7 +53,6 @@ const UploadModal = ({ isOpen, onClose }) => {
       origin: { x: 0, y: 0.6 },
       colors: ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
     })
-    // Right side
     confetti({
       particleCount: 80,
       angle: 120,
@@ -62,7 +60,6 @@ const UploadModal = ({ isOpen, onClose }) => {
       origin: { x: 1, y: 0.6 },
       colors: ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
     })
-    // Center burst
     setTimeout(() => {
       confetti({
         particleCount: 50,
@@ -86,7 +83,7 @@ const UploadModal = ({ isOpen, onClose }) => {
 
     const selectedFile = acceptedFiles[0]
     const validation = validateFile(selectedFile)
-    
+
     if (!validation.isValid) {
       const errorMessages = Object.values(validation.errors).filter(err => err)
       toast.error(errorMessages[0] || 'Invalid file')
@@ -126,11 +123,45 @@ const UploadModal = ({ isOpen, onClose }) => {
     return Object.keys(newErrors).length === 0
   }
 
+  // ✅ NEW - XHR se upload taaki progress track ho sake
+  const uploadWithProgress = (formDataToSend) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100)
+          setUploadProgress(percent)
+        }
+      })
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText))
+        } else {
+          const errorData = JSON.parse(xhr.responseText)
+          reject(new Error(errorData.message || 'Upload failed'))
+        }
+      })
+
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error during upload'))
+      })
+
+      const token = localStorage.getItem('token')
+      xhr.open('POST', `${import.meta.env.VITE_API_URL}/api/notes`)
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+      xhr.send(formDataToSend)
+    })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validateForm()) return
+
     setUploading(true)
-    
+    setUploadProgress(0) // ✅ Reset progress
+
     try {
       const formDataToSend = new FormData()
       formDataToSend.append('title', formData.title)
@@ -142,17 +173,21 @@ const UploadModal = ({ isOpen, onClose }) => {
       formDataToSend.append('fileType', file.name.split('.').pop().toLowerCase())
       formDataToSend.append('fileSize', file.size)
 
-      await uploadNote.mutateAsync(formDataToSend)
-      
-      fireConfetti() // ✅ NEW - confetti chalao!
-      toast.success('🎉 Note uploaded successfully!')  // ✅ NEW - better toast
+      await uploadWithProgress(formDataToSend)
 
+      // Notes list refresh karo
+      queryClient.invalidateQueries({ queryKey: ['notes'] })
+
+      fireConfetti()
+      toast.success('🎉 Note uploaded successfully!')
       onClose()
       resetForm()
     } catch (error) {
+      toast.error(error.message || 'Upload failed. Please try again.')
       console.error('Upload error:', error)
     } finally {
       setUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -160,6 +195,7 @@ const UploadModal = ({ isOpen, onClose }) => {
     setFormData({ title: '', description: '', subject: '', tags: '' })
     setFile(null)
     setErrors({})
+    setUploadProgress(0)
   }
 
   const handleClose = () => {
@@ -171,8 +207,9 @@ const UploadModal = ({ isOpen, onClose }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Upload New Note" size="lg"
-    className="max-h-[90vh] overflow-y-auto">
+      className="max-h-[90vh] overflow-y-auto">
       <form onSubmit={handleSubmit} className="space-y-6">
+
         {/* File Upload */}
         <div>
           <label className="block text-sm font-medium text-gray-200 mb-2">
@@ -208,7 +245,7 @@ const UploadModal = ({ isOpen, onClose }) => {
           {errors.file && (
             <p className="text-red-400 text-sm mt-2">{errors.file}</p>
           )}
-          
+
           {file && (
             <div className="mt-4 p-3 bg-dark-accent rounded-lg flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -224,12 +261,40 @@ const UploadModal = ({ isOpen, onClose }) => {
                 type="button"
                 onClick={() => setFile(null)}
                 className="text-red-400 hover:text-red-300"
+                disabled={uploading}
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
           )}
         </div>
+
+        {/* ✅ NEW - Progress Bar — sirf uploading ke waqt dikhega */}
+        {uploading && (
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-400">
+                {uploadProgress < 100 ? 'Uploading...' : 'Processing...'}
+              </span>
+              <span className="text-sm font-medium text-primary-400">
+                {uploadProgress}%
+              </span>
+            </div>
+            <div className="w-full bg-dark-border rounded-full h-2.5 overflow-hidden">
+              <motion.div
+                className="h-2.5 rounded-full bg-gradient-to-r from-primary-600 to-primary-400"
+                initial={{ width: '0%' }}
+                animate={{ width: `${uploadProgress}%` }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              />
+            </div>
+            {uploadProgress === 100 && (
+              <p className="text-xs text-gray-500 text-center">
+                Almost done — saving to server...
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Note Details */}
         <div className="grid grid-cols-1 gap-4">
@@ -276,12 +341,15 @@ const UploadModal = ({ isOpen, onClose }) => {
             Cancel
           </Button>
           <Button type="submit" loading={uploading} disabled={uploading}>
-            Upload Note
+            {uploading ? `Uploading ${uploadProgress}%` : 'Upload Note'}
           </Button>
         </div>
+
       </form>
     </Modal>
   )
 }
 
 export default UploadModal
+
+//VITE_API_URL=http://localhost:5000
