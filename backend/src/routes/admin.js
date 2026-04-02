@@ -1,17 +1,9 @@
 import express from 'express';
 import {
-  getStats,
-  getAllUsers,
-  toggleUserBan,
-  getAllNotes,
-  deleteNote,
-  toggleNoteApproval,
-  bulkNoteAction,
-  createAnnouncement,
-  getAllAnnouncements,
-  getActiveAnnouncements,
-  toggleAnnouncement,
-  deleteAnnouncement
+  getStats, getAllUsers, toggleUserBan, getAllNotes,
+  deleteNote, toggleNoteApproval, bulkNoteAction,
+  createAnnouncement, getAllAnnouncements, getActiveAnnouncements,
+  toggleAnnouncement, deleteAnnouncement
 } from '../controllers/adminController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 
@@ -28,17 +20,13 @@ router.patch('/users/:id/ban', protect, adminOnly, toggleUserBan);
 router.get('/notes', protect, adminOnly, getAllNotes);
 router.delete('/notes/:id', protect, adminOnly, deleteNote);
 router.patch('/notes/:id/approve', protect, adminOnly, toggleNoteApproval);
-
-// ✅ NEW — Bulk Actions
 router.post('/notes/bulk', protect, adminOnly, bulkNoteAction);
 
-// ✅ NEW — Announcements
-router.post('/announcements', protect, adminOnly, createAnnouncement);
+// ✅ Announcements — active PEHLE aana chahiye :id se
+router.get('/announcements/active', getActiveAnnouncements);  // ✅ PEHLE
 router.get('/announcements', protect, adminOnly, getAllAnnouncements);
+router.post('/announcements', protect, adminOnly, createAnnouncement);
 router.patch('/announcements/:id/toggle', protect, adminOnly, toggleAnnouncement);
 router.delete('/announcements/:id', protect, adminOnly, deleteAnnouncement);
-
-// Public — website pe banner dikhane ke liye
-router.get('/announcements/active', getActiveAnnouncements);
 
 export default router;

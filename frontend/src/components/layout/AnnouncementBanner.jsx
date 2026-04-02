@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Info, AlertTriangle, CheckCircle, AlertOctagon } from 'lucide-react'
-import { adminService } from '../../services/adminService'
+import { api } from '../../services/api'
 
 const ICONS = {
   info: Info,
@@ -22,13 +22,13 @@ const AnnouncementBanner = () => {
   const [dismissed, setDismissed] = useState([])
 
   useEffect(() => {
-    adminService.getActiveAnnouncements()
+    // ✅ adminService ke bajaye direct api use karo
+    api.get('/admin/announcements/active')
       .then(res => setAnnouncements(res.announcements || []))
       .catch(() => {})
   }, [])
 
   const visible = announcements.filter(a => !dismissed.includes(a._id))
-
   if (visible.length === 0) return null
 
   return (
