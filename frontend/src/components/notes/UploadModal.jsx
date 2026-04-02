@@ -149,7 +149,7 @@ const UploadModal = ({ isOpen, onClose }) => {
       })
 
       const token = localStorage.getItem('token')
-      xhr.open('POST', `${import.meta.env.VITE_API_URL}/api/notes`)
+      xhr.open('POST', `${import.meta.env.VITE_API_URL}/notes`)
       xhr.setRequestHeader('Authorization', `Bearer ${token}`)
       xhr.send(formDataToSend)
     })
