@@ -6,7 +6,6 @@ import { motion } from 'framer-motion'
 import Navbar from './components/layout/Navbar'
 import Sidebar from './components/layout/Sidebar'
 import Footer from './components/layout/Footer'
-
 // Pages
 import Home from './pages/Home'
 import Notes from './pages/Notes'
@@ -24,7 +23,6 @@ import LoadingSpinner from './components/ui/LoadingSpinner'
 import BackToTop from './components/BackToTop'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
-import Bookmarks from './pages/Bookmarks'
 
 function App() {
   const { user, loading } = useAuth()
@@ -62,15 +60,14 @@ function App() {
               <Route path="/notes/:id" element={<NoteDetail />} />
               <Route path="/trending" element={<Trending />} />
               <Route path="/upload" element={user ? <Upload /> : <Login />} />
-
-              {/* Auth Routes */}
+{/* Auth Routes */}
               <Route path="/login" element={!user ? <Login /> : <Home />} />
               <Route path="/signup" element={!user ? <Signup /> : <Home />} />
 
               {/* Protected Routes */}
               <Route path="/dashboard" element={user ? <Dashboard /> : <Login />} />
               <Route path="/change-password" element={user ? <ChangePassword /> : <Login />} />
-              <Route path="/bookmarks" element={user ? <Bookmarks /> : <Login />} />
+             
               <Route path="/admin" element={user?.role === 'admin' ? <Admin /> : <Home />} />
 
               {/* Password Routes */}
