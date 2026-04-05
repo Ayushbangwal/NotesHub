@@ -40,12 +40,10 @@ function App() {
       <Navbar />
 
       {/* ✅ FIX: This wrapper handles sidebar + content side by side */}
-      <div className="flex flex-1 pt-16">
-        {/* pt-16 = pushes below Navbar (assuming navbar is h-16 = 64px) */}
-
+      {/* ✅ pt-16 removed — Navbar is sticky so no overlap */}
+      <div className="flex flex-1">
         <Sidebar />
 
-        {/* ✅ FIX: lg:pl-64 instead of lg:ml-64 works better with fixed sidebar */}
         <main className="flex-1 w-full lg:pl-64 min-h-screen">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -54,23 +52,16 @@ function App() {
             className="px-4 py-8"
           >
             <Routes>
-              {/* Public Routes */}
               <Route path="/" element={<Home />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/notes/:id" element={<NoteDetail />} />
               <Route path="/trending" element={<Trending />} />
               <Route path="/upload" element={user ? <Upload /> : <Login />} />
-{/* Auth Routes */}
               <Route path="/login" element={!user ? <Login /> : <Home />} />
               <Route path="/signup" element={!user ? <Signup /> : <Home />} />
-
-              {/* Protected Routes */}
               <Route path="/dashboard" element={user ? <Dashboard /> : <Login />} />
               <Route path="/change-password" element={user ? <ChangePassword /> : <Login />} />
-             
               <Route path="/admin" element={user?.role === 'admin' ? <Admin /> : <Home />} />
-
-              {/* Password Routes */}
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
             </Routes>
