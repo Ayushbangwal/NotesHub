@@ -9,7 +9,7 @@ import Input from '../components/ui/Input'
 import Select from '../components/ui/Select'
 import NoteCard from '../components/notes/NoteCard'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
-import { SkeletonGrid } from '../components/ui/SkeletonLoader' // ✅ NEW
+import { SkeletonGrid } from '../components/ui/SkeletonLoader'
 import { Card, CardContent } from '../components/ui/Card'
 
 const Notes = () => {
@@ -36,7 +36,7 @@ const Notes = () => {
     limit: 12
   }
 
-  const { data, isLoading, error } = useNotes(queryParams)
+  const { data, isLoading, isFetching, error } = useNotes(queryParams)
 
   const handleSearch = (value) => {
     const newParams = new URLSearchParams(searchParams)
@@ -188,8 +188,7 @@ const Notes = () => {
 
       {/* Results */}
       <div>
-        {isLoading ? (
-          // ✅ UPDATED - Skeleton instead of spinner
+        {isLoading || isFetching ? (
           <div>
             <div className="flex justify-between items-center mb-6">
               <div className="h-5 w-40 bg-dark-accent rounded animate-pulse" />
@@ -229,7 +228,7 @@ const Notes = () => {
                 >
                   Previous
                 </Button>
-                
+
                 <div className="flex space-x-1">
                   {Array.from({ length: Math.min(5, data.pagination.pages) }, (_, i) => {
                     const pageNum = i + 1

@@ -6,8 +6,8 @@ export const useNotes = (params = {}) => {
   return useQuery({
     queryKey: ['notes', params],
     queryFn: () => notesService.getAllNotes(params),
-    keepPreviousData: true,
-    staleTime: 0, // ✅ FIX: har baar fresh fetch hoga → skeleton dikhega
+    keepPreviousData: false,
+    staleTime: 0,
     cacheTime: 5 * 60 * 1000,
   })
 }
@@ -17,7 +17,7 @@ export const useNote = (id) => {
     queryKey: ['note', id],
     queryFn: () => notesService.getNoteById(id),
     enabled: !!id,
-    staleTime: 0, // ✅ FIX
+    staleTime: 0,
   })
 }
 
@@ -25,7 +25,7 @@ export const useTrendingNotes = () => {
   return useQuery({
     queryKey: ['trending-notes'],
     queryFn: () => notesService.getTrendingNotes(),
-    staleTime: 0, // ✅ FIX
+    staleTime: 0,
   })
 }
 
