@@ -26,7 +26,7 @@ const Footer = () => {
                 { href: 'https://twitter.com', icon: <Twitter className="h-4 w-4" />, label: 'Twitter' },
                 { href: 'mailto:ayushbangwal0@gmail.com', icon: <Mail className="h-4 w-4" />, label: 'Email' },
               ].map((social) => (
-                
+                <a
                   key={social.label}
                   href={social.href}
                   target={social.href.startsWith('http') ? '_blank' : undefined}
