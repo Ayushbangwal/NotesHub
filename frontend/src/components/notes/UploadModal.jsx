@@ -352,4 +352,3 @@ const UploadModal = ({ isOpen, onClose }) => {
 
 export default UploadModal
 
-//VITE_API_URL=http://localhost:5000

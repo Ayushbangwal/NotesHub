@@ -7,6 +7,8 @@ export const useNotes = (params = {}) => {
     queryKey: ['notes', params],
     queryFn: () => notesService.getAllNotes(params),
     keepPreviousData: true,
+    staleTime: 30 * 1000, // ✅ 30 seconds — same filters pe dobara fetch nahi hoga
+    cacheTime: 5 * 60 * 1000, // ✅ 5 min cache
   })
 }
 
@@ -15,6 +17,7 @@ export const useNote = (id) => {
     queryKey: ['note', id],
     queryFn: () => notesService.getNoteById(id),
     enabled: !!id,
+    staleTime: 60 * 1000, // ✅ 1 min
   })
 }
 
@@ -22,7 +25,7 @@ export const useTrendingNotes = () => {
   return useQuery({
     queryKey: ['trending-notes'],
     queryFn: () => notesService.getTrendingNotes(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -76,7 +79,6 @@ export const useDownloadNote = () => {
   return useMutation({
     mutationFn: notesService.downloadNote,
     onSuccess: (data) => {
-      // Open file in new tab
       window.open(data.fileUrl, '_blank')
       toast.success('Download started!')
     },

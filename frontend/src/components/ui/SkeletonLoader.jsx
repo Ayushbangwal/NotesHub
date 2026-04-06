@@ -1,10 +1,11 @@
-// frontend/src/components/ui/SkeletonLoader.jsx
-
 const SkeletonCard = () => {
   return (
-    <div className="rounded-lg border border-dark-border bg-dark-secondary shadow-sm animate-pulse p-6 flex flex-col h-full">
+    <div className="rounded-lg border border-dark-border bg-dark-secondary shadow-sm p-6 flex flex-col h-full overflow-hidden relative">
+      
+      {/* ✅ Shimmer overlay */}
+      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/5 to-transparent" />
 
-      {/* Top row - icon + badge + bookmark */}
+      {/* Top row */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-dark-accent rounded" />
@@ -29,7 +30,7 @@ const SkeletonCard = () => {
         <div className="w-10 h-5 bg-dark-accent rounded" />
       </div>
 
-      {/* Stats row */}
+      {/* Stats */}
       <div className="flex items-center justify-between mb-2">
         <div className="w-24 h-4 bg-dark-accent rounded" />
         <div className="w-16 h-4 bg-dark-accent rounded" />
@@ -45,8 +46,8 @@ const SkeletonCard = () => {
       <div className="flex gap-2 mt-auto">
         <div className="flex-1 h-9 bg-dark-accent rounded-lg" />
         <div className="w-9 h-9 bg-dark-accent rounded-lg" />
+        <div className="w-9 h-9 bg-dark-accent rounded-lg" />
       </div>
-
     </div>
   )
 }
