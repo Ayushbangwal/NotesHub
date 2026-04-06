@@ -24,7 +24,7 @@ const Footer = () => {
               {[
                 { href: 'https://github.com/Ayushbangwal', icon: <Github className="h-4 w-4" />, label: 'GitHub' },
                 { href: 'https://twitter.com', icon: <Twitter className="h-4 w-4" />, label: 'Twitter' },
-                { href: 'mailto:support@noteshub.com', icon: <Mail className="h-4 w-4" />, label: 'Email' },
+                { href: 'mailto:ayushbangwal0@gmail.com', icon: <Mail className="h-4 w-4" />, label: 'Email' },
               ].map((social) => (
                 <a
                   key={social.label}
