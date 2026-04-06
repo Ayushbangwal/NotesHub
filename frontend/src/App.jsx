@@ -40,8 +40,8 @@ function App() {
       <div className="flex flex-1">
         <Sidebar />
 
-        {/* ✅ Main + Footer dono ek wrapper mein, sidebar ke baad */}
-        <div className="flex flex-col flex-1 w-full lg:pl-64">
+        {/* ✅ lg:pl-64 HATAYA — Sidebar sticky hai, double shift ho raha tha */}
+        <div className="flex flex-col flex-1 min-w-0">
           <main className="flex-1">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -65,8 +65,6 @@ function App() {
               </Routes>
             </motion.div>
           </main>
-
-          {/* ✅ Footer ab sidebar ke baad, same width mein */}
           <Footer />
         </div>
       </div>
