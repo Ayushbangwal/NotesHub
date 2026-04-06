@@ -6,7 +6,6 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 
-// Import routes
 import authRoutes from './src/routes/auth.js';
 import notesRoutes from './src/routes/notes.js';
 import usersRoutes from './src/routes/users.js';
@@ -18,14 +17,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: 'Too many requests from this IP, please try again later.'
 });
 
-// CORS - Sabhi allowed origins
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -35,22 +32,8 @@ const allowedOrigins = [
 
 app.use(helmet());
 app.use(limiter);
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, UptimeRobot)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true
-}));
-app.use(morgan('dev'));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check - SABSE PEHLE, rate limit se pehle
+// ✅ FIX 1: Health check CORS se PEHLE rakho
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
@@ -58,6 +41,38 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// ✅ FIX 2: HEAD /health bhi handle karo UptimeRobot ke liye
+app.head('/health', (req, res) => {
+  res.status(200).end();
+});
+
+// ✅ FIX 3: CORS mein null origin aur unknown origins handle karo gracefully
+app.use(cors({
+  origin: function (origin, callback) {
+    // No origin = curl, mobile apps, UptimeRobot, Render health checks
+    if (!origin) return callback(null, true);
+    
+    // Allowed origins check
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // ✅ Render internal health check origins allow karo
+    if (origin.includes('onrender.com') || origin.includes('uptimerobot.com')) {
+      return callback(null, true);
+    }
+
+    // Baaki sab block
+    console.warn(`CORS blocked origin: ${origin}`);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
+
+app.use(morgan('dev'));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Routes
 app.use('/api/auth', authRoutes);
