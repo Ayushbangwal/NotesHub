@@ -1,3 +1,4 @@
+import React from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { motion } from 'framer-motion'
@@ -16,6 +17,10 @@ import Signup from './pages/Signup'
 import Upload from './pages/Upload'
 import Trending from './pages/Trending'
 import ChangePassword from './pages/ChangePassword'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsOfService from './pages/TermsOfService'
+import HelpCenter from './pages/HelpCenter'
+import ContactUs from './pages/ContactUs'
 
 import LoadingSpinner from './components/ui/LoadingSpinner'
 import BackToTop from './components/BackToTop'
@@ -40,7 +45,6 @@ function App() {
       <div className="flex flex-1">
         <Sidebar />
 
-        {/* ✅ lg:pl-64 HATAYA — Sidebar sticky hai, double shift ho raha tha */}
         <div className="flex flex-col flex-1 min-w-0">
           <main className="flex-1">
             <motion.div
@@ -62,6 +66,10 @@ function App() {
                 <Route path="/admin" element={user?.role === 'admin' ? <Admin /> : <Home />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/help" element={<HelpCenter />} />
+                <Route path="/contact" element={<ContactUs />} />
               </Routes>
             </motion.div>
           </main>
