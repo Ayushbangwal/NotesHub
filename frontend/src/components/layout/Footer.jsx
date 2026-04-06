@@ -1,13 +1,13 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { BookOpen, Github, Twitter, Mail, Heart, Sparkles } from 'lucide-react'
+import { BookOpen, Github, Twitter, Mail } from 'lucide-react'
 
 const Footer = () => {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="border-t border-white/[0.06] bg-[#0e1018] w-full mt-auto">
-      <div className="container mx-auto px-6 py-12">
+    <footer className="border-t border-dark-border bg-dark-secondary w-full mt-auto">
+      <div className="container mx-auto px-6 py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
 
           {/* Brand */}
@@ -32,7 +32,7 @@ const Footer = () => {
                   target={social.href.startsWith('http') ? '_blank' : undefined}
                   rel="noopener noreferrer"
                   aria-label={social.label}
-                  className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.07] text-gray-500 hover:text-primary-400 hover:border-primary-500/40 hover:bg-primary-500/10 transition-all duration-200"
+                  className="flex items-center justify-center w-9 h-9 rounded-xl bg-dark-primary border border-dark-border text-gray-500 hover:text-primary-400 hover:border-primary-500/40 hover:bg-primary-500/10 transition-all duration-200"
                 >
                   {social.icon}
                 </a>
@@ -88,28 +88,17 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-10 pt-6 border-t border-white/[0.05] flex flex-col md:flex-row justify-between items-center gap-4">
-          
-          {/* Left: copyright */}
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-primary-500/15 border border-primary-500/20 flex items-center justify-center">
-              <BookOpen className="h-3 w-3 text-primary-400" />
-            </div>
-            <p className="text-xs text-gray-600">
-              © {currentYear} <span className="text-gray-500 font-medium">NotesHub</span>
-              <span className="mx-1.5 text-gray-700">·</span>
-              <span>All rights reserved</span>
-            </p>
-          </div>
-
-          {/* Right: made with love */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.06]">
-            <Sparkles className="h-3 w-3 text-primary-400" />
-            <span className="text-xs text-gray-500">Made with</span>
-            <Heart className="h-3 w-3 text-red-400 fill-red-400" />
-            <span className="text-xs text-gray-500">for students worldwide</span>
-          </div>
+        <div className="mt-10 pt-5 border-t border-dark-border flex flex-col md:flex-row justify-between items-center gap-2">
+          <p className="text-xs text-gray-600">
+            © {currentYear} <span className="text-gray-500 font-medium">NotesHub</span>
+            <span className="mx-2 text-gray-700">·</span>
+            All rights reserved
+          </p>
+          <p className="text-xs text-gray-600">
+            Built for students, by students
+          </p>
         </div>
+
       </div>
     </footer>
   )
