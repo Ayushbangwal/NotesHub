@@ -96,6 +96,7 @@ app.use('*', (req, res) => {
 });
 
 // Connect to MongoDB
+// connet to MongoDb
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/noteshub')
 .then(() => {
   console.log('Connected to MongoDB');
