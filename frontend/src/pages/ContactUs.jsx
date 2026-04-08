@@ -1,13 +1,37 @@
 import React, { useState } from 'react'
+import emailjs from '@emailjs/browser'
 import { Mail, MessageSquare, Send, MapPin, Clock } from 'lucide-react'
 
 const ContactUs = () => {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' })
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setSubmitted(true)
+    setLoading(true)
+    setError('')
+
+    try {
+      await emailjs.send(
+        'service_csym9hc',    // 🔁 paste karo Service ID
+        'template_rk2bih8',   // 🔁 paste karo Template ID
+        {
+          from_name: form.name,
+          from_email: form.email,
+          subject: form.subject,
+          message: form.message,
+        },
+        'Cc8nttOHwG-k-pFTJ'     // 🔁 paste karo Public Key
+      )
+      setSubmitted(true)
+    } catch (err) {
+      setError('Something went wrong. Please try again.')
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -99,11 +123,14 @@ const ContactUs = () => {
                   className="w-full px-4 py-3 bg-dark-primary border border-dark-border rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors resize-none"
                 />
               </div>
+              {error && <p className="text-red-400 text-sm">{error}</p>}
               <button
                 type="submit"
-                className="w-full bg-primary-500 hover:bg-primary-600 text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                disabled={loading}
+                className="w-full bg-primary-500 hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
               >
-                <Send className="h-4 w-4" /> Send Message
+                <Send className="h-4 w-4" />
+                {loading ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           </>
