@@ -15,6 +15,8 @@ import reportRoutes from './src/routes/reports.js';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1); // ✅ ADDED: Render proxy ke liye
+
 const PORT = process.env.PORT || 5000;
 
 const limiter = rateLimit({
@@ -33,7 +35,6 @@ const allowedOrigins = [
 app.use(helmet());
 app.use(limiter);
 
-// ✅ FIX 1: Health check CORS se PEHLE rakho
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
@@ -42,28 +43,17 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ✅ FIX 2: HEAD /health bhi handle karo UptimeRobot ke liye
 app.head('/health', (req, res) => {
   res.status(200).end();
 });
 
-// ✅ FIX 3: CORS mein null origin aur unknown origins handle karo gracefully
 app.use(cors({
   origin: function (origin, callback) {
-    // No origin = curl, mobile apps, UptimeRobot, Render health checks
     if (!origin) return callback(null, true);
-    
-    // Allowed origins check
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    // ✅ Render internal health check origins allow karo
+    if (allowedOrigins.includes(origin)) return callback(null, true);
     if (origin.includes('onrender.com') || origin.includes('uptimerobot.com')) {
       return callback(null, true);
     }
-
-    // Baaki sab block
     console.warn(`CORS blocked origin: ${origin}`);
     return callback(new Error('Not allowed by CORS'));
   },
@@ -74,14 +64,12 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reports', reportRoutes);
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ 
@@ -90,13 +78,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// Connect to MongoDB
-// connet to MongoDb
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/noteshub')
 .then(() => {
   console.log('Connected to MongoDB');
