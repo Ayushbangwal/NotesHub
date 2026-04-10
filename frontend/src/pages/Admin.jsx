@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users, BookOpen, Download, TrendingUp, Shield, Ban,
   Trash2, Eye, Search, CheckSquare, Square, CheckCheck,
-  XCircle, Megaphone, Plus, ToggleLeft, ToggleRight, AlertTriangle
+  XCircle, Megaphone, Plus, ToggleLeft, ToggleRight, AlertTriangle,
+  FileText, Clock, Activity
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminService } from '../services/adminService'
@@ -31,19 +32,14 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
   const [selectedNote, setSelectedNote] = useState(null)
-
-  // ✅ Bulk selection state
   const [selectedNoteIds, setSelectedNoteIds] = useState([])
   const [bulkAction, setBulkAction] = useState('')
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
-
-  // ✅ Announcement state
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false)
   const [announcementForm, setAnnouncementForm] = useState({
     title: '', message: '', type: 'info', expiresAt: ''
   })
 
-  // Queries
   const { data: statsData } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: adminService.getStats,
@@ -68,7 +64,6 @@ const Admin = () => {
     enabled: activeTab === 'announcements' && user?.role === 'admin'
   })
 
-  // Mutations
   const banUserMutation = useMutation({
     mutationFn: ({ id, reason }) => adminService.toggleUserBan(id, { reason }),
     onSuccess: () => { queryClient.invalidateQueries(['admin-users']); setSelectedUser(null) }
@@ -84,7 +79,6 @@ const Admin = () => {
     onSuccess: () => { queryClient.invalidateQueries(['admin-notes']); toast.success('Note status updated!') }
   })
 
-  // ✅ Bulk Action Mutation
   const bulkActionMutation = useMutation({
     mutationFn: ({ noteIds, action }) => adminService.bulkNoteAction(noteIds, action),
     onSuccess: (data) => {
@@ -92,12 +86,11 @@ const Admin = () => {
       setSelectedNoteIds([])
       setBulkAction('')
       setShowBulkConfirm(false)
-      toast.success(`Bulk action done! ${data.modifiedCount} notes updated.`)
+      toast.success(`Done! ${data.modifiedCount} notes updated.`)
     },
     onError: () => toast.error('Bulk action failed!')
   })
 
-  // ✅ Announcement Mutations
   const createAnnouncementMutation = useMutation({
     mutationFn: adminService.createAnnouncement,
     onSuccess: () => {
@@ -110,18 +103,20 @@ const Admin = () => {
 
   const toggleAnnouncementMutation = useMutation({
     mutationFn: adminService.toggleAnnouncement,
-    onSuccess: () => { queryClient.invalidateQueries(['admin-announcements']); toast.success('Announcement updated!') }
+    onSuccess: () => { queryClient.invalidateQueries(['admin-announcements']); toast.success('Updated!') }
   })
 
   const deleteAnnouncementMutation = useMutation({
     mutationFn: adminService.deleteAnnouncement,
-    onSuccess: () => { queryClient.invalidateQueries(['admin-announcements']); toast.success('Announcement deleted!') }
+    onSuccess: () => { queryClient.invalidateQueries(['admin-announcements']); toast.success('Deleted!') }
   })
 
   if (user?.role !== 'admin') {
     return (
-      <div className="text-center py-12">
-        <Shield className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+      <div className="text-center py-20">
+        <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Shield className="h-10 w-10 text-red-400" />
+        </div>
         <h2 className="text-xl font-semibold text-gray-100 mb-2">Access Denied</h2>
         <p className="text-gray-400">You don't have permission to access this page.</p>
       </div>
@@ -134,6 +129,7 @@ const Admin = () => {
   const subjectStats = statsData?.subjectStats || []
   const notes = notesData?.notes || []
   const announcements = announcementsData?.announcements || []
+  const pendingNotes = notes.filter(n => !n.isApproved)
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: TrendingUp },
@@ -143,7 +139,13 @@ const Admin = () => {
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
   ]
 
-  // Bulk selection handlers
+  const statCards = [
+    { label: 'Total Users', value: stats.totalUsers, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+    { label: 'Total Notes', value: stats.totalNotes, icon: BookOpen, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' },
+    { label: 'Total Downloads', value: stats.totalDownloads, icon: Download, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+    { label: 'Total Comments', value: stats.totalComments, icon: Activity, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+  ]
+
   const toggleSelectNote = (id) => {
     setSelectedNoteIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -164,9 +166,20 @@ const Admin = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-100 mb-2">Admin Dashboard</h1>
-        <p className="text-gray-400">Manage users, notes, announcements and more</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-100 mb-1">Admin Dashboard</h1>
+          <p className="text-gray-400">Manage users, notes, announcements and more</p>
+        </div>
+        {pendingNotes.length > 0 && activeTab !== 'notes' && (
+          <button
+            onClick={() => setActiveTab('notes')}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 text-sm font-medium hover:bg-yellow-500/25 transition-colors"
+          >
+            <Clock className="h-4 w-4" />
+            {pendingNotes.length} note{pendingNotes.length > 1 ? 's' : ''} pending approval
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -192,25 +205,22 @@ const Admin = () => {
         </nav>
       </div>
 
-      {/* ─── OVERVIEW TAB ─── */}
+      {/* OVERVIEW TAB */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { label: 'Total Users', value: stats.totalUsers, icon: Users, color: 'text-blue-500' },
-              { label: 'Total Notes', value: stats.totalNotes, icon: BookOpen, color: 'text-green-500' },
-              { label: 'Total Downloads', value: stats.totalDownloads, icon: Download, color: 'text-purple-500' },
-              { label: 'Total Comments', value: stats.totalComments, icon: TrendingUp, color: 'text-orange-500' },
-            ].map((s, i) => (
-              <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                <Card>
-                  <CardContent className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {statCards.map((s, i) => (
+              <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
+                <Card className={`border ${s.border} hover:scale-[1.02] transition-transform duration-200`}>
+                  <CardContent className="p-5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-400">{s.label}</p>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1">{s.label}</p>
                         <p className="text-2xl font-bold text-gray-100">{s.value ?? '—'}</p>
                       </div>
-                      <s.icon className={`h-8 w-8 ${s.color}`} />
+                      <div className={`w-12 h-12 rounded-xl ${s.bg} flex items-center justify-center`}>
+                        <s.icon className={`h-6 w-6 ${s.color}`} />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -220,14 +230,21 @@ const Admin = () => {
 
           <div className="grid lg:grid-cols-2 gap-6">
             <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Recent Users</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-blue-400" /> Recent Users</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {recentUsers.map(u => (
                     <div key={u._id} className="flex items-center justify-between p-3 bg-dark-accent rounded-lg">
-                      <div><p className="font-medium text-gray-100">{u.username}</p><p className="text-sm text-gray-400">{u.email}</p></div>
-                      <div className="text-right"><p className="text-sm text-gray-400">{formatDate(u.createdAt)}</p>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${u.role === 'admin' ? 'bg-purple-500 text-white' : 'bg-gray-600 text-gray-200'}`}>{u.role}</span>
+                      <div className="flex items-center gap-3">
+                        <img src={u.avatar || `https://ui-avatars.com/api/?name=${u.username}&background=6366f1&color=fff`} alt={u.username} className="h-8 w-8 rounded-full" />
+                        <div>
+                          <p className="font-medium text-gray-100 text-sm">{u.username}</p>
+                          <p className="text-xs text-gray-500">{u.email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">{formatDate(u.createdAt)}</p>
+                        <span className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${u.role === 'admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-600/50 text-gray-300'}`}>{u.role}</span>
                       </div>
                     </div>
                   ))}
@@ -236,13 +253,19 @@ const Admin = () => {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5" /> Recent Notes</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5 text-green-400" /> Recent Notes</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {recentNotes.map(note => (
                     <div key={note._id} className="flex items-center justify-between p-3 bg-dark-accent rounded-lg">
-                      <div className="flex-1"><p className="font-medium text-gray-100 truncate">{note.title}</p><p className="text-sm text-gray-400">by {note.uploadedBy?.username}</p></div>
-                      <div className="text-right"><p className="text-sm text-gray-400">{formatDate(note.createdAt)}</p><p className="text-xs text-gray-400">{note.downloads} downloads</p></div>
+                      <div className="flex-1 min-w-0 mr-3">
+                        <p className="font-medium text-gray-100 text-sm truncate">{note.title}</p>
+                        <p className="text-xs text-gray-500">by {note.uploadedBy?.username}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs text-gray-500">{formatDate(note.createdAt)}</p>
+                        <p className="text-xs text-gray-500">{note.downloads} downloads</p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -250,61 +273,66 @@ const Admin = () => {
             </Card>
           </div>
 
-          <Card>
-            <CardHeader><CardTitle>Notes by Subject</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {subjectStats.map(s => (
-                  <div key={s._id} className="text-center p-4 bg-dark-accent rounded-lg">
-                    <p className="text-lg font-semibold text-gray-100">{s.count}</p>
-                    <p className="text-sm text-gray-400">{s._id}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {subjectStats.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle>Notes by Subject</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {subjectStats.map(s => (
+                    <div key={s._id} className="text-center p-4 bg-dark-accent rounded-xl hover:bg-dark-accent/80 transition-colors">
+                      <p className="text-xl font-bold text-primary-400">{s.count}</p>
+                      <p className="text-xs text-gray-400 mt-1">{s._id}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
-      {/* ─── USERS TAB ─── */}
+      {/* USERS TAB */}
       {activeTab === 'users' && (
         <div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-100">User Management</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-100">User Management</h2>
+              <p className="text-sm text-gray-500">{usersData?.users?.length ?? 0} users total</p>
+            </div>
             <Input type="text" placeholder="Search users..." value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              icon={<Search className="h-4 w-4" />} className="mt-4 sm:mt-0 w-full sm:w-64" />
+              icon={<Search className="h-4 w-4" />} className="w-full sm:w-64" />
           </div>
           {usersLoading ? <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div> : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-dark-border">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-dark-border">
+                  <tr className="border-b border-dark-border bg-dark-accent/50">
                     {['User', 'Email', 'Role', 'Joined', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="text-left py-3 px-4 text-sm font-medium text-gray-400">{h}</th>
+                      <th key={h} className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-gray-500">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-dark-border">
                   {usersData?.users?.map(u => (
-                    <tr key={u._id} className="border-b border-dark-border">
+                    <tr key={u._id} className="hover:bg-dark-accent/30 transition-colors">
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-3">
                           <img src={u.avatar || `https://ui-avatars.com/api/?name=${u.username}&background=6366f1&color=fff`} alt={u.username} className="h-8 w-8 rounded-full" />
-                          <span className="font-medium text-gray-100">{u.username}</span>
+                          <span className="font-medium text-gray-100 text-sm">{u.username}</span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-gray-300">{u.email}</td>
+                      <td className="py-3 px-4 text-gray-400 text-sm">{u.email}</td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${u.role === 'admin' ? 'bg-purple-500 text-white' : 'bg-gray-600 text-gray-200'}`}>{u.role}</span>
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${u.role === 'admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-600/50 text-gray-300'}`}>{u.role}</span>
                       </td>
-                      <td className="py-3 px-4 text-gray-300">{formatDate(u.createdAt)}</td>
+                      <td className="py-3 px-4 text-gray-400 text-sm">{formatDate(u.createdAt)}</td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${u.isBanned ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>{u.isBanned ? 'Banned' : 'Active'}</span>
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${u.isBanned ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>{u.isBanned ? 'Banned' : 'Active'}</span>
                       </td>
                       <td className="py-3 px-4">
                         <Button variant="outline" size="sm" onClick={() => setSelectedUser(u)}>
-                          {u.isBanned ? <><Eye className="h-4 w-4 mr-1" />Unban</> : <><Ban className="h-4 w-4 mr-1" />Ban</>}
+                          {u.isBanned ? <><Eye className="h-3 w-3 mr-1" />Unban</> : <><Ban className="h-3 w-3 mr-1" />Ban</>}
                         </Button>
                       </td>
                     </tr>
@@ -316,40 +344,50 @@ const Admin = () => {
         </div>
       )}
 
-      {/* ─── NOTES TAB ─── */}
+      {/* NOTES TAB */}
       {activeTab === 'notes' && (
         <div>
-          <h2 className="text-xl font-semibold text-gray-100 mb-6">Note Management</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-100">Note Management</h2>
+              {pendingNotes.length > 0 && (
+                <p className="text-sm text-yellow-400 mt-0.5">⚠️ {pendingNotes.length} note{pendingNotes.length > 1 ? 's' : ''} pending approval</p>
+              )}
+            </div>
+          </div>
           {notesLoading ? <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div> : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-dark-border">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-dark-border">
+                  <tr className="border-b border-dark-border bg-dark-accent/50">
                     {['Note', 'Author', 'Subject', 'Downloads', 'Rating', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="text-left py-3 px-4 text-sm font-medium text-gray-400">{h}</th>
+                      <th key={h} className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-gray-500">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-dark-border">
                   {notes.map(note => (
-                    <tr key={note._id} className="border-b border-dark-border">
-                      <td className="py-3 px-4"><p className="font-medium text-gray-100 truncate max-w-xs">{note.title}</p><p className="text-sm text-gray-400">{note.fileType?.toUpperCase()}</p></td>
-                      <td className="py-3 px-4 text-gray-300">{note.uploadedBy?.username}</td>
-                      <td className="py-3 px-4 text-gray-300">{note.subject}</td>
-                      <td className="py-3 px-4 text-gray-300">{note.downloads}</td>
-                      <td className="py-3 px-4 text-gray-300">{note.averageRating?.toFixed(1)}</td>
+                    <tr key={note._id} className={`hover:bg-dark-accent/30 transition-colors ${!note.isApproved ? 'bg-yellow-500/3' : ''}`}>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${note.isApproved ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'}`}>
+                        <p className="font-medium text-gray-100 text-sm truncate max-w-[200px]">{note.title}</p>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">{note.fileType}</span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-400 text-sm">{note.uploadedBy?.username}</td>
+                      <td className="py-3 px-4 text-gray-400 text-sm">{note.subject}</td>
+                      <td className="py-3 px-4 text-gray-400 text-sm">{note.downloads}</td>
+                      <td className="py-3 px-4 text-gray-400 text-sm">{note.averageRating?.toFixed(1)}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${note.isApproved ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                           {note.isApproved ? 'Approved' : 'Pending'}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={() => approveNoteMutation.mutate(note._id)}>
-                            {note.isApproved ? <XCircle className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                            {note.isApproved ? <XCircle className="h-3.5 w-3.5" /> : <CheckSquare className="h-3.5 w-3.5" />}
                           </Button>
                           <Button variant="danger" size="sm" onClick={() => setSelectedNote(note)}>
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </td>
@@ -362,7 +400,7 @@ const Admin = () => {
         </div>
       )}
 
-      {/* ─── BULK ACTIONS TAB ─── */}
+      {/* BULK ACTIONS TAB */}
       {activeTab === 'bulk' && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -371,31 +409,24 @@ const Admin = () => {
               <p className="text-gray-400 text-sm">{selectedNoteIds.length} note(s) selected</p>
             </div>
             <div className="flex gap-3 flex-wrap">
-              <select
-                value={bulkAction}
-                onChange={(e) => setBulkAction(e.target.value)}
-                className="px-4 py-2 rounded-lg bg-dark-accent border border-white/10 text-gray-200 text-sm focus:outline-none focus:border-primary-400"
-              >
+              <select value={bulkAction} onChange={(e) => setBulkAction(e.target.value)}
+                className="px-4 py-2 rounded-lg bg-dark-accent border border-white/10 text-gray-200 text-sm focus:outline-none focus:border-primary-400">
                 <option value="">Select Action</option>
                 <option value="approve">✅ Approve Selected</option>
                 <option value="unapprove">⏸ Unapprove Selected</option>
                 <option value="delete">🗑 Delete Selected</option>
               </select>
-              <Button
-                onClick={handleBulkConfirm}
-                disabled={selectedNoteIds.length === 0 || !bulkAction}
-                className="bg-primary-500 hover:bg-primary-600 text-white"
-              >
+              <Button onClick={handleBulkConfirm} disabled={selectedNoteIds.length === 0 || !bulkAction}>
                 Apply to {selectedNoteIds.length} notes
               </Button>
             </div>
           </div>
 
           {notesLoading ? <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div> : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-dark-border">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-dark-border">
+                  <tr className="border-b border-dark-border bg-dark-accent/50">
                     <th className="py-3 px-4">
                       <button onClick={toggleSelectAll} className="text-gray-400 hover:text-primary-400">
                         {selectedNoteIds.length === notes.length && notes.length > 0
@@ -404,13 +435,13 @@ const Admin = () => {
                       </button>
                     </th>
                     {['Note', 'Author', 'Subject', 'Status'].map(h => (
-                      <th key={h} className="text-left py-3 px-4 text-sm font-medium text-gray-400">{h}</th>
+                      <th key={h} className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-gray-500">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-dark-border">
                   {notes.map(note => (
-                    <tr key={note._id} className={`border-b border-dark-border transition-colors ${selectedNoteIds.includes(note._id) ? 'bg-primary-500/5' : ''}`}>
+                    <tr key={note._id} className={`transition-colors ${selectedNoteIds.includes(note._id) ? 'bg-primary-500/5' : 'hover:bg-dark-accent/30'}`}>
                       <td className="py-3 px-4">
                         <button onClick={() => toggleSelectNote(note._id)} className="text-gray-400 hover:text-primary-400">
                           {selectedNoteIds.includes(note._id)
@@ -418,11 +449,14 @@ const Admin = () => {
                             : <Square className="h-5 w-5" />}
                         </button>
                       </td>
-                      <td className="py-3 px-4"><p className="font-medium text-gray-100 truncate max-w-xs">{note.title}</p><p className="text-xs text-gray-500">{note.fileType?.toUpperCase()}</p></td>
-                      <td className="py-3 px-4 text-gray-300">{note.uploadedBy?.username}</td>
-                      <td className="py-3 px-4 text-gray-300">{note.subject}</td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${note.isApproved ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'}`}>
+                        <p className="font-medium text-gray-100 text-sm truncate max-w-[200px]">{note.title}</p>
+                        <p className="text-[10px] text-gray-500 uppercase">{note.fileType}</p>
+                      </td>
+                      <td className="py-3 px-4 text-gray-400 text-sm">{note.uploadedBy?.username}</td>
+                      <td className="py-3 px-4 text-gray-400 text-sm">{note.subject}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${note.isApproved ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                           {note.isApproved ? 'Approved' : 'Pending'}
                         </span>
                       </td>
@@ -435,7 +469,7 @@ const Admin = () => {
         </div>
       )}
 
-      {/* ─── ANNOUNCEMENTS TAB ─── */}
+      {/* ANNOUNCEMENTS TAB */}
       {activeTab === 'announcements' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -443,27 +477,30 @@ const Admin = () => {
               <h2 className="text-xl font-semibold text-gray-100">Announcements</h2>
               <p className="text-gray-400 text-sm">Send banners/notices to all users</p>
             </div>
-            <Button onClick={() => setShowAnnouncementModal(true)} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" /> New Announcement
+            <Button onClick={() => setShowAnnouncementModal(true)} icon={<Plus className="h-4 w-4" />}>
+              New Announcement
             </Button>
           </div>
 
           {announcementsLoading ? <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div> : (
             <div className="space-y-4">
               {announcements.length === 0 ? (
-                <div className="text-center py-16 text-gray-400">
-                  <Megaphone className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p>No announcements yet</p>
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 bg-gray-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Megaphone className="h-8 w-8 text-gray-500" />
+                  </div>
+                  <p className="text-gray-400">No announcements yet</p>
+                  <p className="text-gray-600 text-sm mt-1">Create one to notify all users</p>
                 </div>
               ) : announcements.map(ann => {
                 const style = TYPE_STYLES[ann.type] || TYPE_STYLES.info
                 return (
-                  <div key={ann._id} className={`rounded-xl border p-5 ${style.bg} ${!ann.isActive ? 'opacity-50' : ''}`}>
+                  <div key={ann._id} className={`rounded-xl border p-5 transition-opacity ${style.bg} ${!ann.isActive ? 'opacity-50' : ''}`}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className={`text-xs px-2 py-0.5 rounded-full text-white font-medium ${style.badge}`}>{ann.type}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${ann.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ann.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
                             {ann.isActive ? 'Active' : 'Inactive'}
                           </span>
                           <span className="text-xs text-gray-500">{formatDate(ann.createdAt)}</span>
@@ -473,12 +510,10 @@ const Admin = () => {
                         <p className="text-gray-300 text-sm">{ann.message}</p>
                       </div>
                       <div className="flex gap-2 shrink-0">
-                        <button onClick={() => toggleAnnouncementMutation.mutate(ann._id)}
-                          className="text-gray-400 hover:text-primary-400 transition-colors" title="Toggle">
+                        <button onClick={() => toggleAnnouncementMutation.mutate(ann._id)} className="text-gray-400 hover:text-primary-400 transition-colors">
                           {ann.isActive ? <ToggleRight className="h-5 w-5 text-green-400" /> : <ToggleLeft className="h-5 w-5" />}
                         </button>
-                        <button onClick={() => deleteAnnouncementMutation.mutate(ann._id)}
-                          className="text-gray-400 hover:text-red-400 transition-colors" title="Delete">
+                        <button onClick={() => deleteAnnouncementMutation.mutate(ann._id)} className="text-gray-400 hover:text-red-400 transition-colors">
                           <Trash2 className="h-5 w-5" />
                         </button>
                       </div>
@@ -491,9 +526,7 @@ const Admin = () => {
         </div>
       )}
 
-      {/* ─── MODALS ─── */}
-
-      {/* Ban User Modal */}
+      {/* MODALS */}
       <Modal isOpen={!!selectedUser} onClose={() => setSelectedUser(null)}
         title={selectedUser?.isBanned ? 'Unban User' : 'Ban User'} size="sm">
         <div className="space-y-4">
@@ -509,7 +542,6 @@ const Admin = () => {
         </div>
       </Modal>
 
-      {/* Delete Note Modal */}
       <Modal isOpen={!!selectedNote} onClose={() => setSelectedNote(null)} title="Delete Note" size="sm">
         <div className="space-y-4">
           <p className="text-gray-300">Delete "<strong>{selectedNote?.title}</strong>"? This cannot be undone.</p>
@@ -520,7 +552,6 @@ const Admin = () => {
         </div>
       </Modal>
 
-      {/* Bulk Confirm Modal */}
       <Modal isOpen={showBulkConfirm} onClose={() => setShowBulkConfirm(false)} title="Confirm Bulk Action" size="sm">
         <div className="space-y-4">
           <div className="flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
@@ -531,46 +562,36 @@ const Admin = () => {
           </div>
           <div className="flex space-x-3 justify-end">
             <Button variant="outline" onClick={() => setShowBulkConfirm(false)}>Cancel</Button>
-            <Button
-              variant={bulkAction === 'delete' ? 'danger' : 'primary'}
+            <Button variant={bulkAction === 'delete' ? 'danger' : 'primary'}
               onClick={() => bulkActionMutation.mutate({ noteIds: selectedNoteIds, action: bulkAction })}
-              loading={bulkActionMutation.isLoading}
-            >
+              loading={bulkActionMutation.isLoading}>
               Confirm {bulkAction}
             </Button>
           </div>
         </div>
       </Modal>
 
-      {/* Create Announcement Modal */}
       <Modal isOpen={showAnnouncementModal} onClose={() => setShowAnnouncementModal(false)} title="New Announcement" size="md">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Title *</label>
-            <input
-              value={announcementForm.title}
+            <input value={announcementForm.title}
               onChange={(e) => setAnnouncementForm(p => ({ ...p, title: e.target.value }))}
               placeholder="e.g. Maintenance tonight at 10 PM"
-              className="w-full px-3 py-2 rounded-lg bg-dark-accent border border-white/10 text-gray-200 text-sm focus:outline-none focus:border-primary-400"
-            />
+              className="w-full px-3 py-2 rounded-lg bg-dark-accent border border-white/10 text-gray-200 text-sm focus:outline-none focus:border-primary-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Message *</label>
-            <textarea
-              value={announcementForm.message}
+            <textarea value={announcementForm.message}
               onChange={(e) => setAnnouncementForm(p => ({ ...p, message: e.target.value }))}
-              rows={3}
-              placeholder="Describe the announcement..."
-              className="w-full px-3 py-2 rounded-lg bg-dark-accent border border-white/10 text-gray-200 text-sm resize-none focus:outline-none focus:border-primary-400"
-            />
+              rows={3} placeholder="Describe the announcement..."
+              className="w-full px-3 py-2 rounded-lg bg-dark-accent border border-white/10 text-gray-200 text-sm resize-none focus:outline-none focus:border-primary-400" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Type</label>
-            <select
-              value={announcementForm.type}
+            <select value={announcementForm.type}
               onChange={(e) => setAnnouncementForm(p => ({ ...p, type: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg bg-dark-accent border border-white/10 text-gray-200 text-sm focus:outline-none focus:border-primary-400"
-            >
+              className="w-full px-3 py-2 rounded-lg bg-dark-accent border border-white/10 text-gray-200 text-sm focus:outline-none focus:border-primary-400">
               <option value="info">ℹ️ Info</option>
               <option value="warning">⚠️ Warning</option>
               <option value="success">✅ Success</option>
@@ -579,29 +600,21 @@ const Admin = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Expires At (optional)</label>
-            <input
-              type="datetime-local"
-              value={announcementForm.expiresAt}
+            <input type="datetime-local" value={announcementForm.expiresAt}
               onChange={(e) => setAnnouncementForm(p => ({ ...p, expiresAt: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg bg-dark-accent border border-white/10 text-gray-200 text-sm focus:outline-none focus:border-primary-400"
-            />
+              className="w-full px-3 py-2 rounded-lg bg-dark-accent border border-white/10 text-gray-200 text-sm focus:outline-none focus:border-primary-400" />
           </div>
-
-          {/* Preview */}
           {announcementForm.title && (
             <div className={`rounded-lg border p-4 ${TYPE_STYLES[announcementForm.type]?.bg}`}>
               <p className={`font-semibold text-sm ${TYPE_STYLES[announcementForm.type]?.text}`}>{announcementForm.title}</p>
               {announcementForm.message && <p className="text-gray-300 text-xs mt-1">{announcementForm.message}</p>}
             </div>
           )}
-
           <div className="flex gap-3 justify-end">
             <Button variant="outline" onClick={() => setShowAnnouncementModal(false)}>Cancel</Button>
-            <Button
-              onClick={() => createAnnouncementMutation.mutate(announcementForm)}
+            <Button onClick={() => createAnnouncementMutation.mutate(announcementForm)}
               loading={createAnnouncementMutation.isLoading}
-              disabled={!announcementForm.title || !announcementForm.message}
-            >
+              disabled={!announcementForm.title || !announcementForm.message}>
               Publish Announcement
             </Button>
           </div>

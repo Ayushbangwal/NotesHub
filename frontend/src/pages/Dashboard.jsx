@@ -1,18 +1,10 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom' // ✅ useNavigate add kiya
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
-  Upload, 
-  BookOpen, 
-  Download, 
-  Bookmark,
-  TrendingUp,
-  Eye,
-  Star,
-  Calendar,
-  FileText,
-  BarChart3,
-  Lock // ✅ Lock icon add kiya
+  Upload, BookOpen, Download, Bookmark,
+  TrendingUp, Eye, Star, Calendar,
+  FileText, BarChart3, Lock, Trophy
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useQuery } from '@tanstack/react-query'
@@ -25,7 +17,7 @@ import { formatDate, formatFileSize } from '../utils/helpers'
 
 const Dashboard = () => {
   const { user } = useAuth()
-  const navigate = useNavigate() // ✅ NEW
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('overview')
 
   const { data: dashboardData, isLoading } = useQuery({
@@ -60,18 +52,52 @@ const Dashboard = () => {
     { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark }
   ]
 
+  const statCards = [
+    {
+      label: 'Total Uploads',
+      value: stats.totalUploads ?? 0,
+      icon: Upload,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10',
+      border: 'border-blue-500/20'
+    },
+    {
+      label: 'Total Downloads',
+      value: stats.totalViews ?? 0,
+      icon: TrendingUp,
+      color: 'text-green-400',
+      bg: 'bg-green-500/10',
+      border: 'border-green-500/20'
+    },
+    {
+      label: 'Bookmarks',
+      value: stats.totalBookmarks ?? 0,
+      icon: Bookmark,
+      color: 'text-purple-400',
+      bg: 'bg-purple-500/10',
+      border: 'border-purple-500/20'
+    },
+    {
+      label: 'Avg Rating',
+      value: stats.averageRating ? `${stats.averageRating.toFixed(1)} ⭐` : '0.0',
+      icon: Star,
+      color: 'text-yellow-400',
+      bg: 'bg-yellow-500/10',
+      border: 'border-yellow-500/20'
+    }
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-100 mb-2">
-            Welcome back, {user?.username}!
+          <h1 className="text-3xl font-bold text-gray-100 mb-1">
+            Welcome back, <span className="text-primary-400">{user?.username}</span>! 👋
           </h1>
           <p className="text-gray-400">Manage your notes and track your progress</p>
         </div>
-        {/* ✅ Dono buttons side by side */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Button
             variant="outline"
             onClick={() => navigate('/change-password')}
@@ -88,85 +114,34 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400">Total Uploads</p>
-                  <p className="text-2xl font-bold text-gray-100">{stats.totalUploads}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map((s, i) => (
+          <motion.div
+            key={s.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: i * 0.08 }}
+          >
+            <Card className={`border ${s.border} hover:scale-[1.02] transition-transform duration-200`}>
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1">{s.label}</p>
+                    <p className="text-2xl font-bold text-gray-100">{s.value}</p>
+                  </div>
+                  <div className={`w-12 h-12 rounded-xl ${s.bg} flex items-center justify-center`}>
+                    <s.icon className={`h-6 w-6 ${s.color}`} />
+                  </div>
                 </div>
-                <Upload className="h-8 w-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400">Total Downloads</p>
-                  <p className="text-2xl font-bold text-gray-100">{stats.totalViews}</p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400">Bookmarks</p>
-                  <p className="text-2xl font-bold text-gray-100">{stats.totalBookmarks}</p>
-                </div>
-                <Bookmark className="h-8 w-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-        >
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400">Avg Rating</p>
-                  <p className="text-2xl font-bold text-gray-100">
-                    {stats.averageRating ? stats.averageRating.toFixed(1) : 'N/A'}
-                  </p>
-                </div>
-                <Star className="h-8 w-8 text-yellow-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-dark-border">
-        <nav className="flex space-x-8">
+      <div className="border-b border-dark-border overflow-x-auto">
+        <nav className="flex space-x-6 min-w-max">
           {tabs.map((tab) => {
             const Icon = tab.icon
             return (
@@ -189,6 +164,7 @@ const Dashboard = () => {
 
       {/* Tab Content */}
       <div className="space-y-6">
+
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="grid lg:grid-cols-2 gap-6">
@@ -196,7 +172,7 @@ const Dashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Upload className="h-5 w-5" />
+                  <Upload className="h-5 w-5 text-blue-400" />
                   <span>Recent Uploads</span>
                 </CardTitle>
               </CardHeader>
@@ -204,35 +180,48 @@ const Dashboard = () => {
                 {uploadedNotes.length > 0 ? (
                   <div className="space-y-3">
                     {uploadedNotes.slice(0, 5).map((note) => (
-                      <div key={note._id} className="flex items-center justify-between p-3 bg-dark-accent rounded-lg">
-                        <div className="flex-1 min-w-0">
+                      <div key={note._id} className="flex items-center justify-between p-3 bg-dark-accent rounded-lg hover:bg-dark-accent/80 transition-colors">
+                        <div className="flex-1 min-w-0 mr-3">
                           <Link
                             to={`/notes/${note._id}`}
-                            className="text-sm font-medium text-gray-100 hover:text-primary-400 truncate"
+                            className="text-sm font-medium text-gray-100 hover:text-primary-400 truncate block"
                           >
                             {note.title}
                           </Link>
-                          <div className="flex items-center space-x-4 text-xs text-gray-400 mt-1">
+                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
                             <span>{formatDate(note.createdAt)}</span>
-                            <span>{note.downloads} downloads</span>
+                            <span className="flex items-center gap-1">
+                              <Download className="h-3 w-3" />
+                              {note.downloads}
+                            </span>
+                            {note.fileSize && (
+                              <span>{formatFileSize(note.fileSize)}</span>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center space-x-1 text-yellow-400">
+                        <div className="flex items-center gap-1 text-yellow-400 shrink-0">
                           <Star className="h-3 w-3 fill-current" />
-                          <span className="text-xs">{note.averageRating.toFixed(1)}</span>
+                          <span className="text-xs font-medium">
+                            {note.averageRating ? note.averageRating.toFixed(1) : '0.0'}
+                          </span>
                         </div>
                       </div>
                     ))}
                     {uploadedNotes.length > 5 && (
-                      <Link to="/dashboard?tab=uploaded" className="text-sm text-primary-400 hover:text-primary-300">
-                        View all uploads →
-                      </Link>
+                      <button
+                        onClick={() => setActiveTab('uploaded')}
+                        className="text-sm text-primary-400 hover:text-primary-300 transition-colors"
+                      >
+                        View all {uploadedNotes.length} uploads →
+                      </button>
                     )}
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Upload className="h-12 w-12 text-gray-500 mx-auto mb-3" />
-                    <p className="text-gray-400 mb-3">No notes uploaded yet</p>
+                    <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Upload className="h-8 w-8 text-blue-400" />
+                    </div>
+                    <p className="text-gray-400 mb-4">No notes uploaded yet</p>
                     <Link to="/upload">
                       <Button size="sm">Upload Your First Note</Button>
                     </Link>
@@ -245,7 +234,7 @@ const Dashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Download className="h-5 w-5" />
+                  <Download className="h-5 w-5 text-green-400" />
                   <span>Recent Downloads</span>
                 </CardTitle>
               </CardHeader>
@@ -253,32 +242,39 @@ const Dashboard = () => {
                 {downloadHistory.length > 0 ? (
                   <div className="space-y-3">
                     {downloadHistory.slice(0, 5).map((item) => (
-                      <div key={item._id} className="flex items-center justify-between p-3 bg-dark-accent rounded-lg">
-                        <div className="flex-1 min-w-0">
+                      <div key={item._id} className="flex items-center justify-between p-3 bg-dark-accent rounded-lg hover:bg-dark-accent/80 transition-colors">
+                        <div className="flex-1 min-w-0 mr-3">
                           <Link
                             to={`/notes/${item.note._id}`}
-                            className="text-sm font-medium text-gray-100 hover:text-primary-400 truncate"
+                            className="text-sm font-medium text-gray-100 hover:text-primary-400 truncate block"
                           >
                             {item.note.title}
                           </Link>
-                          <div className="flex items-center space-x-4 text-xs text-gray-400 mt-1">
+                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
                             <span>by {item.note.uploadedBy.username}</span>
                             <span>{formatDate(item.downloadedAt)}</span>
                           </div>
                         </div>
-                        <FileText className="h-4 w-4 text-gray-400" />
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-dark-border text-gray-400 uppercase shrink-0">
+                          {item.note.fileType || 'PDF'}
+                        </span>
                       </div>
                     ))}
                     {downloadHistory.length > 5 && (
-                      <Link to="/dashboard?tab=downloads" className="text-sm text-primary-400 hover:text-primary-300">
+                      <button
+                        onClick={() => setActiveTab('downloads')}
+                        className="text-sm text-primary-400 hover:text-primary-300 transition-colors"
+                      >
                         View all downloads →
-                      </Link>
+                      </button>
                     )}
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Download className="h-12 w-12 text-gray-500 mx-auto mb-3" />
-                    <p className="text-gray-400 mb-3">No downloads yet</p>
+                    <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Download className="h-8 w-8 text-green-400" />
+                    </div>
+                    <p className="text-gray-400 mb-4">No downloads yet</p>
                     <Link to="/notes">
                       <Button size="sm">Browse Notes</Button>
                     </Link>
@@ -293,7 +289,10 @@ const Dashboard = () => {
         {activeTab === 'uploaded' && (
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-100">My Uploaded Notes</h2>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-100">My Uploaded Notes</h2>
+                <p className="text-sm text-gray-500 mt-0.5">{uploadedNotes.length} note{uploadedNotes.length !== 1 ? 's' : ''} uploaded</p>
+              </div>
               <Link to="/upload">
                 <Button icon={<Upload className="h-4 w-4" />}>Upload New</Button>
               </Link>
@@ -307,7 +306,9 @@ const Dashboard = () => {
             ) : (
               <Card>
                 <CardContent className="text-center py-12">
-                  <Upload className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                  <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Upload className="h-10 w-10 text-blue-400" />
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-100 mb-2">No notes uploaded yet</h3>
                   <p className="text-gray-400 mb-4">Start sharing your knowledge with the community</p>
                   <Link to="/upload">
@@ -322,7 +323,10 @@ const Dashboard = () => {
         {/* Downloads Tab */}
         {activeTab === 'downloads' && (
           <div>
-            <h2 className="text-xl font-semibold text-gray-100 mb-6">Download History</h2>
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-100">Download History</h2>
+              <p className="text-sm text-gray-500 mt-0.5">{downloadHistory.length} note{downloadHistory.length !== 1 ? 's' : ''} downloaded</p>
+            </div>
             {downloadHistory.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {downloadHistory.map((item) => (
@@ -332,7 +336,9 @@ const Dashboard = () => {
             ) : (
               <Card>
                 <CardContent className="text-center py-12">
-                  <Download className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                  <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Download className="h-10 w-10 text-green-400" />
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-100 mb-2">No downloads yet</h3>
                   <p className="text-gray-400 mb-4">Explore and download notes from the community</p>
                   <Link to="/notes">
@@ -347,7 +353,10 @@ const Dashboard = () => {
         {/* Bookmarks Tab */}
         {activeTab === 'bookmarks' && (
           <div>
-            <h2 className="text-xl font-semibold text-gray-100 mb-6">Bookmarked Notes</h2>
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-100">Bookmarked Notes</h2>
+              <p className="text-sm text-gray-500 mt-0.5">{bookmarkedNotes.length} note{bookmarkedNotes.length !== 1 ? 's' : ''} bookmarked</p>
+            </div>
             {bookmarkedNotes.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {bookmarkedNotes.map((note) => (
@@ -357,7 +366,9 @@ const Dashboard = () => {
             ) : (
               <Card>
                 <CardContent className="text-center py-12">
-                  <Bookmark className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                  <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Bookmark className="h-10 w-10 text-purple-400" />
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-100 mb-2">No bookmarks yet</h3>
                   <p className="text-gray-400 mb-4">Save your favorite notes for easy access</p>
                   <Link to="/notes">
