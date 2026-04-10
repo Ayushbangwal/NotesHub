@@ -39,13 +39,13 @@ export const validateUsername = (username) => {
 
 export const validateFile = (file) => {
   const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation']
-  const maxSize = 10 * 1024 * 1024 // 10MB
+  const maxSize = 50 * 1024 * 1024 // 50MB
 
   return {
     isValid: allowedTypes.includes(file.type) && file.size <= maxSize,
     errors: {
       type: !allowedTypes.includes(file.type) ? 'Only PDF, DOCX, and PPT files are allowed' : '',
-      size: file.size > maxSize ? 'File size must be less than 10MB' : ''
+      size: file.size > maxSize ? 'File size must be less than 50MB' : '' //  updated
     }
   }
 }
