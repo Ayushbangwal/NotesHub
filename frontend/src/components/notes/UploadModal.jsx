@@ -98,7 +98,8 @@ const UploadModal = ({ isOpen, onClose }) => {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.ppt', '.pptx']
     },
-    maxSize: 50 * 1024 * 1024, // ✅ 50MB
+    maxSize: 50 * 1024 * 1024, 
+    
     multiple: false
   })
 
