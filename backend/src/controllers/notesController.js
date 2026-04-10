@@ -3,9 +3,15 @@ import Comment from '../models/Comment.js';
 import Download from '../models/Download.js';
 import User from '../models/User.js';
 import { validationResult } from 'express-validator';
-import { v2 as cloudinary } from 'cloudinary';
+import { createClient } from '@supabase/supabase-js';  // ✅ Supabase
 import { generateFileHash } from '../middleware/upload.js';
 import { sendDownloadNotification, sendRatingNotification } from '../utils/emailService.js';
+
+// ✅ Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
 
 // Get all notes with search and filters
 export const getAllNotes = async (req, res) => {
@@ -74,15 +80,9 @@ export const getNoteById = async (req, res) => {
   }
 };
 
-// Upload new note
+// ✅ Upload new note — Supabase version
 export const uploadNote = async (req, res) => {
   try {
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-    });
-
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
@@ -110,24 +110,34 @@ export const uploadNote = async (req, res) => {
 
     const fileType = req.file.originalname.split('.').pop().toLowerCase();
     const fileName = req.file.originalname;
+    const uniqueFileName = `${Date.now()}-${fileName}`;
 
-    const uploadResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: 'noteshub', resource_type: 'raw', public_id: `${Date.now()}-${fileName}` },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      uploadStream.end(req.file.buffer);
-    });
+    // ✅ Supabase upload
+    const { data, error } = await supabase.storage
+      .from('notes')
+      .upload(uniqueFileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      return res.status(500).json({ message: 'File upload failed' });
+    }
+
+    // ✅ Public URL generate karo
+    const { data: urlData } = supabase.storage
+      .from('notes')
+      .getPublicUrl(uniqueFileName);
+
+    const fileUrl = urlData.publicUrl;
 
     const note = new Note({
       title: title.trim(),
       description: description.trim(),
       subject,
       tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
-      fileUrl: uploadResult.secure_url,
+      fileUrl,
       fileName,
       fileType,
       fileSize: req.file.size,
@@ -216,8 +226,6 @@ export const downloadNote = async (req, res) => {
       note: note._id
     });
 
-    console.log('⬇️ Download attempt — existingDownload:', !!existingDownload)
-
     if (!existingDownload) {
       await Download.create({ user: req.user.id, note: note._id });
       note.downloads += 1;
@@ -227,27 +235,17 @@ export const downloadNote = async (req, res) => {
         note.uploadedBy,
         { $inc: { 'stats.totalDownloads': 1 } },
         { new: true }
-      )
-
-      console.log('🔍 Owner:', owner?.username, '|', owner?.email)
-      console.log('🔍 Downloader ID:', req.user.id)
-      console.log('🔍 Owner ID:', owner?._id?.toString())
-      console.log('🔍 Same person?:', owner?._id?.toString() === req.user.id)
+      );
 
       if (owner && owner._id.toString() !== req.user.id) {
-        const downloader = await User.findById(req.user.id).select('username')
-        console.log('📧 Sending email to:', owner.email)
+        const downloader = await User.findById(req.user.id).select('username');
         await sendDownloadNotification({
           ownerEmail: owner.email,
           ownerName: owner.username,
           noteTitle: note.title,
           downloaderName: downloader?.username || 'Someone'
-        })
-      } else {
-        console.log('⚠️ Email skip — same user ya owner null')
+        });
       }
-    } else {
-      console.log('⏭️ Already downloaded before — email skip')
     }
 
     res.json({
@@ -276,8 +274,7 @@ export const rateNote = async (req, res) => {
       return res.status(404).json({ message: 'Note not found' });
     }
 
-    const isNewRating = !note.ratings.find(r => r.user.toString() === req.user.id)
-    console.log('⭐ Rate attempt — isNewRating:', isNewRating)
+    const isNewRating = !note.ratings.find(r => r.user.toString() === req.user.id);
 
     const existingRatingIndex = note.ratings.findIndex(
       r => r.user.toString() === req.user.id
@@ -292,23 +289,18 @@ export const rateNote = async (req, res) => {
     await note.save();
 
     if (isNewRating && note.uploadedBy.toString() !== req.user.id) {
-      const owner = await User.findById(note.uploadedBy).select('username email')
-      const rater = await User.findById(req.user.id).select('username')
-
-      console.log('🔍 Rating owner:', owner?.username, '|', owner?.email)
+      const owner = await User.findById(note.uploadedBy).select('username email');
+      const rater = await User.findById(req.user.id).select('username');
 
       if (owner) {
-        console.log('📧 Sending rating email to:', owner.email)
         await sendRatingNotification({
           ownerEmail: owner.email,
           ownerName: owner.username,
           noteTitle: note.title,
           raterName: rater?.username || 'Someone',
           rating
-        })
+        });
       }
-    } else {
-      console.log('⚠️ Rating email skip — same user ya existing rating')
     }
 
     res.json({
