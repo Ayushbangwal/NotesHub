@@ -74,7 +74,7 @@ const UploadModal = ({ isOpen, onClose }) => {
     if (fileRejections.length > 0) {
       const rejection = fileRejections[0]
       if (rejection.errors.some(err => err.code === 'file-too-large')) {
-        toast.error('File size must be less than 10MB')
+        toast.error('File size must be less than 50MB') // ✅ updated
       } else if (rejection.errors.some(err => err.code === 'file-invalid-type')) {
         toast.error('Only PDF, DOCX, and PPT files are allowed')
       }
@@ -98,7 +98,7 @@ const UploadModal = ({ isOpen, onClose }) => {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.ppt', '.pptx']
     },
-    maxSize: 10 * 1024 * 1024,
+    maxSize: 50 * 1024 * 1024, // ✅ 50MB
     multiple: false
   })
 
@@ -247,7 +247,7 @@ const UploadModal = ({ isOpen, onClose }) => {
                       </span>
                     ))}
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-dark-accent text-gray-500 border border-dark-border">
-                      Max 10MB
+                      Max 50MB  {/* ✅ updated */}
                     </span>
                   </div>
                 </motion.div>
@@ -261,7 +261,6 @@ const UploadModal = ({ isOpen, onClose }) => {
                 transition={{ duration: 0.2 }}
                 className="rounded-xl border border-dark-border bg-dark-accent p-4 flex items-center gap-4"
               >
-                {/* File type badge */}
                 <div className="w-12 h-12 rounded-lg bg-primary-500/15 border border-primary-500/30 flex flex-col items-center justify-center flex-shrink-0">
                   <span className="text-base leading-none">{getFileIcon(file.name)}</span>
                   <span className="text-[9px] font-bold text-primary-400 mt-0.5">{getFileTypeLabel(file.name)}</span>
@@ -270,7 +269,6 @@ const UploadModal = ({ isOpen, onClose }) => {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-100 truncate">{file.name}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{formatFileSize(file.size)}</p>
-                  {/* Mini progress bar while uploading */}
                   {uploading && (
                     <div className="mt-2 h-1 bg-dark-border rounded-full overflow-hidden">
                       <motion.div
@@ -312,7 +310,7 @@ const UploadModal = ({ isOpen, onClose }) => {
           )}
         </div>
 
-        {/* ── Upload Progress Bar (global) ── */}
+        {/* ── Upload Progress Bar ── */}
         <AnimatePresence>
           {uploading && (
             <motion.div

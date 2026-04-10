@@ -1,10 +1,8 @@
 import multer from 'multer';
 import crypto from 'crypto';
 
-// Configure multer for memory storage
 const storage = multer.memoryStorage();
 
-// File filter - only allow PDF, DOCX, and PPT files
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = [
     'application/pdf',
@@ -21,17 +19,15 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer
 const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-    files: 1 // Only one file at a time
+    fileSize: 50 * 1024 * 1024, //  50MB limit
+    files: 1
   }
 });
 
-// Generate file hash for duplicate detection
 export const generateFileHash = (buffer) => {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 };
