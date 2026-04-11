@@ -1,6 +1,6 @@
 import express from 'express';
 import {
-  getStats, getAllUsers, toggleUserBan, getAllNotes,
+  getStats, getPublicStats, getAllUsers, toggleUserBan, getAllNotes,
   deleteNote, toggleNoteApproval, bulkNoteAction,
   createAnnouncement, getAllAnnouncements, getActiveAnnouncements,
   toggleAnnouncement, deleteAnnouncement
@@ -8,6 +8,9 @@ import {
 import { protect, adminOnly } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// ✅ Public route — no auth needed
+router.get('/public-stats', getPublicStats);
 
 // Stats
 router.get('/stats', protect, adminOnly, getStats);
@@ -22,8 +25,8 @@ router.delete('/notes/:id', protect, adminOnly, deleteNote);
 router.patch('/notes/:id/approve', protect, adminOnly, toggleNoteApproval);
 router.post('/notes/bulk', protect, adminOnly, bulkNoteAction);
 
-// ✅ Announcements — active PEHLE aana chahiye :id se
-router.get('/announcements/active', getActiveAnnouncements);  // ✅ PEHLE
+// Announcements
+router.get('/announcements/active', getActiveAnnouncements);
 router.get('/announcements', protect, adminOnly, getAllAnnouncements);
 router.post('/announcements', protect, adminOnly, createAnnouncement);
 router.patch('/announcements/:id/toggle', protect, adminOnly, toggleAnnouncement);
