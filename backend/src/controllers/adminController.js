@@ -35,6 +35,23 @@ export const getStats = async (req, res) => {
   }
 };
 
+// ✅ NEW — Public Stats (no auth required — Home page ke liye)
+export const getPublicStats = async (req, res) => {
+  try {
+    const totalNotes = await Note.countDocuments({ isDeleted: false, isApproved: true });
+    const totalUsers = await User.countDocuments({ isBanned: false });
+    const totalDownloads = await Download.countDocuments();
+
+    // Unique subjects count
+    const subjects = await Note.distinct('subject', { isDeleted: false, isApproved: true });
+    const totalSubjects = subjects.length;
+
+    res.json({ totalNotes, totalUsers, totalDownloads, totalSubjects });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error while fetching public stats' });
+  }
+};
+
 // Get all users
 export const getAllUsers = async (req, res) => {
   try {
@@ -119,7 +136,7 @@ export const toggleNoteApproval = async (req, res) => {
   }
 };
 
-// ✅ NEW — Bulk Actions on Notes
+// Bulk Actions on Notes
 export const bulkNoteAction = async (req, res) => {
   try {
     const { noteIds, action } = req.body;
@@ -139,16 +156,13 @@ export const bulkNoteAction = async (req, res) => {
 
     const result = await Note.updateMany({ _id: { $in: noteIds } }, updateQuery);
 
-    res.json({
-      message: `Bulk ${action} successful`,
-      modifiedCount: result.modifiedCount
-    });
+    res.json({ message: `Bulk ${action} successful`, modifiedCount: result.modifiedCount });
   } catch (error) {
     res.status(500).json({ message: 'Server error during bulk action' });
   }
 };
 
-// ✅ NEW — Create Announcement
+// Create Announcement
 export const createAnnouncement = async (req, res) => {
   try {
     const { title, message, type, expiresAt } = req.body;
@@ -158,8 +172,7 @@ export const createAnnouncement = async (req, res) => {
     }
 
     const announcement = await Announcement.create({
-      title,
-      message,
+      title, message,
       type: type || 'info',
       expiresAt: expiresAt || null,
       createdBy: req.user._id
@@ -171,7 +184,7 @@ export const createAnnouncement = async (req, res) => {
   }
 };
 
-// ✅ NEW — Get All Announcements (admin)
+// Get All Announcements (admin)
 export const getAllAnnouncements = async (req, res) => {
   try {
     const announcements = await Announcement.find()
@@ -184,7 +197,7 @@ export const getAllAnnouncements = async (req, res) => {
   }
 };
 
-// ✅ NEW — Get Active Announcements (public — website pe dikhane ke liye)
+// Get Active Announcements (public)
 export const getActiveAnnouncements = async (req, res) => {
   try {
     const now = new Date();
@@ -199,7 +212,7 @@ export const getActiveAnnouncements = async (req, res) => {
   }
 };
 
-// ✅ NEW — Toggle Announcement Active/Inactive
+// Toggle Announcement Active/Inactive
 export const toggleAnnouncement = async (req, res) => {
   try {
     const announcement = await Announcement.findById(req.params.id);
@@ -214,7 +227,7 @@ export const toggleAnnouncement = async (req, res) => {
   }
 };
 
-// ✅ NEW — Delete Announcement
+// Delete Announcement
 export const deleteAnnouncement = async (req, res) => {
   try {
     const announcement = await Announcement.findByIdAndDelete(req.params.id);

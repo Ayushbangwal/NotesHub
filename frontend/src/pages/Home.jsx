@@ -7,14 +7,37 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useTrendingNotes } from '../hooks/useNotes'
+import { useQuery } from '@tanstack/react-query'
 import Button from '../components/ui/Button'
 import { Card, CardContent } from '../components/ui/Card'
 import NoteCard from '../components/notes/NoteCard'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
+// ✅ Real stats fetch function
+const fetchPublicStats = async () => {
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/public-stats`)
+  if (!res.ok) throw new Error('Failed to fetch stats')
+  return res.json()
+}
+
+const formatNumber = (num) => {
+  if (!num && num !== 0) return '...'
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M+`
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K+`
+  return `${num}+`
+}
+
 const Home = () => {
   const { user, isAuthenticated } = useAuth()
   const { data: trendingData, isLoading } = useTrendingNotes()
+
+  // ✅ Real stats from backend
+  const { data: publicStats } = useQuery({
+    queryKey: ['public-stats'],
+    queryFn: fetchPublicStats,
+    staleTime: 5 * 60 * 1000, // 5 min cache
+    retry: 1
+  })
 
   const features = [
     {
@@ -51,11 +74,36 @@ const Home = () => {
     }
   ]
 
+  // ✅ Real data use ho raha hai
   const stats = [
-    { label: 'Total Notes', value: '10,000+', icon: <BookOpen className="h-5 w-5" />, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: 'Active Users', value: '5,000+', icon: <Users className="h-5 w-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { label: 'Downloads', value: '50,000+', icon: <Download className="h-5 w-5" />, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: 'Subjects', value: '15+', icon: <Star className="h-5 w-5" />, color: 'text-orange-400', bg: 'bg-orange-500/10' }
+    {
+      label: 'Total Notes',
+      value: formatNumber(publicStats?.totalNotes),
+      icon: <BookOpen className="h-5 w-5" />,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10'
+    },
+    {
+      label: 'Active Users',
+      value: formatNumber(publicStats?.totalUsers),
+      icon: <Users className="h-5 w-5" />,
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-500/10'
+    },
+    {
+      label: 'Downloads',
+      value: formatNumber(publicStats?.totalDownloads),
+      icon: <Download className="h-5 w-5" />,
+      color: 'text-purple-400',
+      bg: 'bg-purple-500/10'
+    },
+    {
+      label: 'Subjects',
+      value: formatNumber(publicStats?.totalSubjects),
+      icon: <Star className="h-5 w-5" />,
+      color: 'text-orange-400',
+      bg: 'bg-orange-500/10'
+    }
   ]
 
   return (
@@ -63,7 +111,6 @@ const Home = () => {
 
       {/* Hero Section */}
       <section className="text-center py-16 relative">
-        {/* Background glow */}
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-primary-500/5 rounded-full blur-3xl" />
         </div>
@@ -92,27 +139,19 @@ const Home = () => {
             {isAuthenticated ? (
               <>
                 <Link to="/notes">
-                  <Button size="lg" icon={<Search className="h-5 w-5" />}>
-                    Browse Notes
-                  </Button>
+                  <Button size="lg" icon={<Search className="h-5 w-5" />}>Browse Notes</Button>
                 </Link>
                 <Link to="/upload">
-                  <Button variant="outline" size="lg" icon={<Upload className="h-5 w-5" />}>
-                    Upload Notes
-                  </Button>
+                  <Button variant="outline" size="lg" icon={<Upload className="h-5 w-5" />}>Upload Notes</Button>
                 </Link>
               </>
             ) : (
               <>
                 <Link to="/signup">
-                  <Button size="lg" icon={<ArrowRight className="h-5 w-5" />}>
-                    Get Started Free
-                  </Button>
+                  <Button size="lg" icon={<ArrowRight className="h-5 w-5" />}>Get Started Free</Button>
                 </Link>
                 <Link to="/notes">
-                  <Button variant="outline" size="lg" icon={<Search className="h-5 w-5" />}>
-                    Explore Notes
-                  </Button>
+                  <Button variant="outline" size="lg" icon={<Search className="h-5 w-5" />}>Explore Notes</Button>
                 </Link>
               </>
             )}
@@ -120,7 +159,7 @@ const Home = () => {
         </motion.div>
       </section>
 
-      {/* Stats Section */}
+      {/* ✅ Real Stats Section */}
       <section>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {stats.map((stat, index) => (
@@ -135,7 +174,9 @@ const Home = () => {
                   <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${stat.bg} ${stat.color} mb-3`}>
                     {stat.icon}
                   </div>
-                  <div className="text-2xl font-bold text-gray-100 mb-1">{stat.value}</div>
+                  <div className="text-2xl font-bold text-gray-100 mb-1">
+                    {stat.value}
+                  </div>
                   <div className="text-sm text-gray-400">{stat.label}</div>
                 </CardContent>
               </Card>
@@ -185,16 +226,12 @@ const Home = () => {
             <p className="text-gray-400">Discover the most popular notes this week</p>
           </div>
           <Link to="/notes">
-            <Button variant="outline" icon={<ArrowRight className="h-4 w-4" />}>
-              View All
-            </Button>
+            <Button variant="outline" icon={<ArrowRight className="h-4 w-4" />}>View All</Button>
           </Link>
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <LoadingSpinner size="lg" />
-          </div>
+          <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div>
         ) : trendingData?.notes?.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trendingData.notes.slice(0, 6).map((note) => (
@@ -225,23 +262,17 @@ const Home = () => {
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl" />
             </div>
             <Shield className="h-12 w-12 text-primary-400 mx-auto mb-5" />
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-100 mb-3">
-              Ready to Start Learning?
-            </h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-100 mb-3">Ready to Start Learning?</h2>
             <p className="text-gray-400 mb-8 leading-relaxed">
               Join thousands of students who are already sharing and discovering amazing notes.
             </p>
             {isAuthenticated ? (
               <Link to="/upload">
-                <Button size="lg" icon={<Upload className="h-5 w-5" />}>
-                  Upload Your First Note
-                </Button>
+                <Button size="lg" icon={<Upload className="h-5 w-5" />}>Upload Your First Note</Button>
               </Link>
             ) : (
               <Link to="/signup">
-                <Button size="lg" icon={<ArrowRight className="h-5 w-5" />}>
-                  Join NotesHub Today
-                </Button>
+                <Button size="lg" icon={<ArrowRight className="h-5 w-5" />}>Join NotesHub Today</Button>
               </Link>
             )}
           </div>
