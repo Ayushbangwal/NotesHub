@@ -5,27 +5,64 @@ import { Eye, EyeOff, Mail, Lock, User, ShieldCheck, RefreshCw } from 'lucide-re
 import { api } from '../services/api'
 import toast from 'react-hot-toast'
 import Button from '../components/ui/Button'
+import { validateEmail, validatePassword, validateUsername } from '../utils/validators'
 
 const Signup = () => {
   const navigate = useNavigate()
 
-  // Step 1: form, Step 2: OTP
   const [step, setStep] = useState(1)
   const [pendingEmail, setPendingEmail] = useState('')
 
   const [formData, setFormData] = useState({ username: '', email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
 
   const [otp, setOtp] = useState('')
   const [otpLoading, setOtpLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value })
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData({ ...formData, [name]: value })
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }))
+  }
+
+  // ✅ Frontend validation
+  const validateForm = () => {
+    const newErrors = {}
+
+    const usernameValidation = validateUsername(formData.username)
+    if (!formData.username) {
+      newErrors.username = 'Username is required'
+    } else if (!usernameValidation.isValid) {
+      newErrors.username = Object.values(usernameValidation.errors).find(err => err) || 'Invalid username'
+    }
+
+    if (!formData.email) {
+      newErrors.email = 'Email is required'
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid email'
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required'
+    } else {
+      const passwordValidation = validatePassword(formData.password)
+      if (!passwordValidation.isValid) {
+        newErrors.password = Object.values(passwordValidation.errors).find(err => err) || 'Invalid password'
+      }
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   // Step 1 — Signup
   const handleSignup = async (e) => {
     e.preventDefault()
+    if (!validateForm()) return   // ✅ Validation pehle
+
     setLoading(true)
     try {
       const res = await api.post('/auth/signup', formData)
@@ -35,7 +72,19 @@ const Signup = () => {
         toast.success('OTP sent to your email!')
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Signup failed')
+      const backendMsg = err.response?.data?.message
+      const backendErrors = err.response?.data?.errors
+
+      // ✅ Backend field errors handle karo
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors = {}
+        backendErrors.forEach(e => {
+          if (e.path) fieldErrors[e.path] = e.msg
+        })
+        setErrors(fieldErrors)
+      } else {
+        toast.error(backendMsg || 'Signup failed')
+      }
     } finally {
       setLoading(false)
     }
@@ -101,6 +150,8 @@ const Signup = () => {
                       className="w-full pl-10 pr-4 py-3 rounded-lg bg-dark-accent border border-white/10 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-primary-400"
                     />
                   </div>
+                  {/* ✅ Error display */}
+                  {errors.username && <p className="text-red-400 text-xs mt-1">{errors.username}</p>}
                 </div>
 
                 <div>
@@ -117,6 +168,7 @@ const Signup = () => {
                       className="w-full pl-10 pr-4 py-3 rounded-lg bg-dark-accent border border-white/10 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-primary-400"
                     />
                   </div>
+                  {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
                 </div>
 
                 <div>
@@ -140,6 +192,14 @@ const Signup = () => {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                  {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
+                  {/* ✅ Password hints */}
+                  <ul className="text-xs text-gray-500 mt-2 space-y-0.5">
+                    <li>• At least 6 characters</li>
+                    <li>• One uppercase letter</li>
+                    <li>• One lowercase letter</li>
+                    <li>• One number</li>
+                  </ul>
                 </div>
 
                 <Button type="submit" className="w-full" loading={loading}>
@@ -154,7 +214,6 @@ const Signup = () => {
             </>
           ) : (
             <>
-              {/* OTP Step */}
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-500/20 rounded-full mb-4">
                   <ShieldCheck className="h-8 w-8 text-primary-400" />
