@@ -28,7 +28,6 @@ const Signup = () => {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }))
   }
 
-  // ✅ Frontend validation
   const validateForm = () => {
     const newErrors = {}
 
@@ -58,10 +57,9 @@ const Signup = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  // Step 1 — Signup
   const handleSignup = async (e) => {
     e.preventDefault()
-    if (!validateForm()) return   // ✅ Validation pehle
+    if (!validateForm()) return
 
     setLoading(true)
     try {
@@ -75,7 +73,6 @@ const Signup = () => {
       const backendMsg = err.response?.data?.message
       const backendErrors = err.response?.data?.errors
 
-      // ✅ Backend field errors handle karo
       if (backendErrors && Array.isArray(backendErrors)) {
         const fieldErrors = {}
         backendErrors.forEach(e => {
@@ -90,7 +87,6 @@ const Signup = () => {
     }
   }
 
-  // Step 2 — Verify OTP
   const handleVerifyOTP = async (e) => {
     e.preventDefault()
     if (otp.length !== 6) return toast.error('Enter 6-digit OTP')
@@ -108,7 +104,6 @@ const Signup = () => {
     }
   }
 
-  // Resend OTP
   const handleResend = async () => {
     setResendLoading(true)
     try {
@@ -120,6 +115,15 @@ const Signup = () => {
       setResendLoading(false)
     }
   }
+
+  // ✅ Real-time password checks
+  const pwd = formData.password
+  const passwordChecks = [
+    { label: 'At least 6 characters', valid: pwd.length >= 6 },
+    { label: 'One uppercase letter', valid: /[A-Z]/.test(pwd) },
+    { label: 'One lowercase letter', valid: /[a-z]/.test(pwd) },
+    { label: 'One number',           valid: /\d/.test(pwd) },
+  ]
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -137,6 +141,7 @@ const Signup = () => {
               </div>
 
               <form onSubmit={handleSignup} className="space-y-5">
+                {/* Username */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Username</label>
                   <div className="relative">
@@ -150,10 +155,10 @@ const Signup = () => {
                       className="w-full pl-10 pr-4 py-3 rounded-lg bg-dark-accent border border-white/10 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-primary-400"
                     />
                   </div>
-                  {/* ✅ Error display */}
                   {errors.username && <p className="text-red-400 text-xs mt-1">{errors.username}</p>}
                 </div>
 
+                {/* Email */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
                   <div className="relative">
@@ -171,6 +176,7 @@ const Signup = () => {
                   {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
                 </div>
 
+                {/* Password */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
                   <div className="relative">
@@ -193,13 +199,23 @@ const Signup = () => {
                     </button>
                   </div>
                   {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
-                  {/* ✅ Password hints */}
-                  <ul className="text-xs text-gray-500 mt-2 space-y-0.5">
-                    <li>• At least 6 characters</li>
-                    <li>• One uppercase letter</li>
-                    <li>• One lowercase letter</li>
-                    <li>• One number</li>
-                  </ul>
+
+                  {/* ✅ Real-time password indicator */}
+                  {pwd.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {passwordChecks.map((check) => (
+                        <li
+                          key={check.label}
+                          className={`flex items-center gap-2 text-xs transition-colors ${
+                            check.valid ? 'text-green-400' : 'text-gray-500'
+                          }`}
+                        >
+                          <span>{check.valid ? '✅' : '❌'}</span>
+                          {check.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 <Button type="submit" className="w-full" loading={loading}>
